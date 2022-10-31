@@ -40,15 +40,15 @@ module "vpc" {
 
   # EKS에서 애플리케이션 로드 밸런싱 문서( https://docs.aws.amazon.com/ko_kr/eks/latest/userguide/alb-ingress.html) 에 따라 다음 태그를 설정 
   private_subnet_tags = {
-    "Name" = "private-subnets"
-    "kubernetes.io/role/internal-elb"                 = "1"
-    "kubernetes.io/cluster/${local.eks_cluster_name}" = "shared"
+    "Name"                                      = "private-subnets"
+    "kubernetes.io/role/internal-elb"           = "1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
 
   public_subnet_tags = {
-    "Name" = "public-subnets"
-    "kubernetes.io/role/elb"                          = "1"
-    "kubernetes.io/cluster/${local.eks_cluster_name}" = "shared"
+    "Name"                                      = "public-subnets"
+    "kubernetes.io/role/elb"                    = "1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
 
   database_subnet_tags = {

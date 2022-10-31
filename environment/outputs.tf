@@ -15,6 +15,14 @@ output "bastion" {
     sequrity_group_id = module.bastion_public_sg.security_group_id
     bastion_host_id   = module.bastion_ec2_instance.id
     bastion_host_eip  = aws_eip.bastion_eip.public_ip
+    key_pair = var.bastion_instance_keypair
   }
 }
+
+output "eks" {
+  value = {
+    cluster_name = var.cluster_name
+  }
+}
+
 

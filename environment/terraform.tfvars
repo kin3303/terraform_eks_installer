@@ -2,6 +2,7 @@
 aws_region = "ap-northeast-2"
 environment = "dev"
 business_divsion = "idt"
+cluster_name = "eks-cluster-dk"
 
 # VPC Variables 
 vpc_name = "eks-vpc"

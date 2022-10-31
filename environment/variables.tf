@@ -112,5 +112,4 @@ variable "private_key_file_path" {
 variable "cluster_name" {
   description = "EKS cluster name"
   type = string
-  default = "eks-cluster"
 }
