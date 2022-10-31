@@ -1,13 +1,14 @@
 
 ## Install kubectl CLI
-- https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
+- [Install kubectl CLI](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html)
 
+ 
 ## kubeconfig
-- https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html#eks-configure-kubectl
+- [EKS configure kubectl](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html#eks-configure-kubectl)
 
 
-## Test
-- https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+## k8s cheatsheet
+- [k8s cheatsheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet)
 
 ```console
 aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
