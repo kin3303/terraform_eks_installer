@@ -39,4 +39,3 @@ cat /etc/kubernetes/kubelet/kubelet-config.json
 cat /var/lib/kubelet/kubeconfig
 wget <kubernetes endpoint>
 ```
-
