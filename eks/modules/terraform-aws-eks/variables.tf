@@ -4,7 +4,7 @@
 ################################################################################################
 variable "resource_name_prefix" {
   type        = string
-  description = "String value for friendly name prefix for AWS resource names."
+  description = "(Required) String value for friendly name prefix for AWS resource names."
 }
 
 
@@ -13,7 +13,7 @@ variable "resource_name_prefix" {
 ################################################################################################
 variable "cluster_name" {
   type        = string
-  description = "EKS cluster name"
+  description = "(Required) EKS cluster name"
 
 }
 
@@ -30,27 +30,25 @@ variable "cluster_service_ipv4_cidr" {
 
 variable "cluster_version" {
   type        = string
-  description = "EKS cluster version"
-
-  default = "1.22"
+  description = "(Optional) EKS cluster version"
+  default     = "1.22"
 }
 
 variable "cluster_endpoint_private_access" {
   type        = bool
-  description = "Amazon EKS private API server endpoint is enabled."
-
-  default = false
+  description = "(Optional) Amazon EKS private API server endpoint is enabled."
+  default     = false
 }
 
 variable "cluster_endpoint_public_access" {
   type        = bool
-  description = "Amazon EKS public API server endpoint is enabled."
+  description = "(Optional) Amazon EKS public API server endpoint is enabled."
   default     = true
 }
 
 variable "cluster_public_access_cidrs" {
   type        = list(string)
-  description = "List of CIDR blocks which can access the Amazon EKS public API server endpoint."
+  description = "(Optional) List of CIDR blocks which can access the Amazon EKS public API server endpoint."
   default     = ["0.0.0.0/0"]
 }
 
@@ -83,8 +81,9 @@ variable "eks_private_nodegroup_subnet_ids" {
 }
 
 variable "eks_node_ssh_key" {
-  description = " EC2 Key Pair name that provides access for SSH communication with the worker nodes in the EKS Node Group"
   type        = string
+  description = "(Optional) EC2 Key Pair name that provides access for SSH communication with the worker nodes in the EKS Node Group"
+  default     = null
 }
 
 variable "eks_node_security_group_ids" {
@@ -93,4 +92,5 @@ variable "eks_node_security_group_ids" {
    (Optional) Set of EC2 Security Group IDs to allow SSH access (port 22) from on the worker nodes. 
    If you specify `eks_node_ssh_key`, but do not specify this configuration when you create an EKS Node Group, port 22 on the worker nodes is opened to the Internet (0.0.0.0/0)
   EOT
+  default     = []
 }

@@ -14,8 +14,13 @@ resource "aws_eks_node_group" "eks_ng_public" {
   capacity_type  = "ON_DEMAND"
   disk_size      = 20
   instance_types = ["t2.medium"]
-  remote_access {
-    ec2_ssh_key = var.eks_node_ssh_key
+
+  dynamic "remote_access" {
+    for_each = var.eks_node_ssh_key == null ? [] : [1]
+
+    content {
+      ec2_ssh_key = var.eks_node_ssh_key
+    }
   }
 
   scaling_config {
@@ -56,9 +61,13 @@ resource "aws_eks_node_group" "eks_ng_private" {
   disk_size      = 20
   instance_types = ["t2.medium"]
 
-  remote_access {
-    ec2_ssh_key               = var.eks_node_ssh_key
-    source_security_group_ids = var.eks_node_security_group_ids
+  dynamic "remote_access" {
+    for_each = var.eks_node_ssh_key == null && length(var.eks_node_security_group_ids) == 0 ? [] : [1]
+
+    content {
+      ec2_ssh_key               = var.eks_node_ssh_key
+      source_security_group_ids = var.eks_node_security_group_ids
+    }
   }
 
   scaling_config {
