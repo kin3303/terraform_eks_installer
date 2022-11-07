@@ -50,10 +50,6 @@ resource "aws_iam_role" "irsa_s3_read_only_role" {
       },
     ]
   })
-
-  tags = {
-    tag-key = "irsa-s3-readonly-role"
-  }
 }
 
 resource "aws_iam_role_policy_attachment" "irsa_iam_role_policy_attach" {
