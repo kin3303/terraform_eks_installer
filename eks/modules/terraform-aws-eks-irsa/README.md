@@ -58,6 +58,10 @@ resource "aws_iam_role_policy_attachment" "irsa_iam_role_policy_attach" {
 }
 
 # 모듈사용
+locals {
+  oidc_provider_arn         = data.terraform_remote_state.eks.outputs.eks_oidc_provider.arn
+}
+
 module "eks_irsa_role" {
   source                     = "../eks/modules/terraform-aws-eks-irsa"
   provider_arn               = local.oidc_provider_arn
