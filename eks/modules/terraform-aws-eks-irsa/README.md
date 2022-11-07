@@ -33,7 +33,6 @@ locals {
   oidc_provider_url_extract = "${replace(data.terraform_remote_state.eks.outputs.eks_oidc_provider.url, "https://", "")}:sub"
 }
 
-
 resource "aws_iam_role" "irsa_s3_read_only_role" {
   name = "irsa-s3-readonly-role"
 
