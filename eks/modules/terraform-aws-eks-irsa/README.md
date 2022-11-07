@@ -30,7 +30,9 @@ EKS에서 '서비스 계정'이 IAM 역할을 수행할 수 있는 방법에 대
 # 기존
 locals {
   oidc_provider_arn         = data.terraform_remote_state.eks.outputs.eks_oidc_provider.arn
+  oidc_provider_url_extract = "${replace(data.terraform_remote_state.eks.outputs.eks_oidc_provider.url, "https://", "")}:sub"
 }
+
 
 resource "aws_iam_role" "irsa_s3_read_only_role" {
   name = "irsa-s3-readonly-role"
@@ -43,7 +45,7 @@ resource "aws_iam_role" "irsa_s3_read_only_role" {
         Effect = "Allow"
         Sid    = ""
         Principal = {
-          Federated =  "${replace(local.oidc_provider_arn, "/^(.*provider/)/", "")}:sub" 
+          Federated = local.oidc_provider_arn # https://docs.aws.amazon.com/ko_kr/IAM/latest/UserGuide/id_roles_providers.html
         }
         Condition = {
           StringEquals = { #oidc.eks.ap-northeast-2.amazonaws.com/id/A9CA35794A78F8EF8F3A154C3B892A73:sub
@@ -63,7 +65,6 @@ resource "aws_iam_role_policy_attachment" "irsa_iam_role_policy_attach" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
   role       = aws_iam_role.irsa_s3_read_only_role.name
 }
-
 
 # 모듈사용
 module "eks_irsa_role" {
