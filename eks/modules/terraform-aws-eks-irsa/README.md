@@ -32,7 +32,6 @@ locals {
   oidc_provider_arn         = data.terraform_remote_state.eks.outputs.eks_oidc_provider.arn
 }
 
-
 resource "aws_iam_role" "irsa_s3_read_only_role" {
   name = "irsa-s3-readonly-role"
 
@@ -44,7 +43,7 @@ resource "aws_iam_role" "irsa_s3_read_only_role" {
         Effect = "Allow"
         Sid    = ""
         Principal = {
-          Federated =  "${replace(local.oidc_provider_arn, "/^(.*provider/)/", "")}:sub" # https://docs.aws.amazon.com/ko_kr/IAM/latest/UserGuide/id_roles_providers.html
+          Federated =  "${replace(local.oidc_provider_arn, "/^(.*provider/)/", "")}:sub" 
         }
         Condition = {
           StringEquals = { #oidc.eks.ap-northeast-2.amazonaws.com/id/A9CA35794A78F8EF8F3A154C3B892A73:sub
@@ -66,7 +65,7 @@ resource "aws_iam_role_policy_attachment" "irsa_iam_role_policy_attach" {
 }
 
 
-# 모듈 
+# 모듈사용
 module "eks_irsa_role" {
   source                     = "../eks/modules/terraform-aws-eks-irsa"
   provider_arn               = local.oidc_provider_arn
