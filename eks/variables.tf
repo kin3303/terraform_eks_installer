@@ -23,13 +23,12 @@ variable "business_divsion" {
 ################################################################################################
 # Cluster
 ################################################################################################
-
 variable "cluster_name" {
   type        = string
   description = "(Required) EKS cluster name"
 }
 
-variable "eks_subnet_ids" {
+variable "cluster_subnet_ids" {
   type        = list(string)
   description = <<EOT
     (Required) List of subnet IDs. Must be in at least two different availability zones. 
@@ -41,8 +40,7 @@ variable "eks_subnet_ids" {
 ################################################################################################
 # EKS Node Group
 ################################################################################################
-
-variable "eks_public_nodegroup_subnet_ids" {
+variable "nodegroup_public_subnet_ids" {
   type        = list(string)
   description = <<EOT
     (Required) Identifiers of EC2 Subnets to associate with the EKS Public Node Group. 
@@ -50,7 +48,7 @@ variable "eks_public_nodegroup_subnet_ids" {
   EOT
 }
 
-variable "eks_private_nodegroup_subnet_ids" {
+variable "nodegroup_private_subnet_ids" {
   type        = list(string)
   description = <<EOT
     (Required) Identifiers of EC2 Subnets to associate with the EKS Public Node Group. 
@@ -58,12 +56,12 @@ variable "eks_private_nodegroup_subnet_ids" {
   EOT
 }
 
-variable "eks_node_ssh_key" {
+variable "nodegroup_ssh_key" {
   description = "(Optional) EC2 Key Pair name that provides access for SSH communication with the worker nodes in the EKS Node Group"
   type        = string
 }
 
-variable "eks_node_security_group_ids" {
+variable "nodegroup_ssh_allowed_security_group_ids" {
   description = "(Optional) Set of EC2 Security Group IDs to allow SSH access (port 22) from on the worker nodes."
   type        = list(string)
   default     = ["0.0.0.0/0"]

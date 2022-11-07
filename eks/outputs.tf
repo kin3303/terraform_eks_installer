@@ -9,3 +9,7 @@ output "eks_public_node_group" {
 output "eks_private_node_group" {
   value = module.eks.eks_private_node_group
 }
+
+output "eks_oidc_provider" {
+  value =  module.eks.eks_oidc_provider
+}

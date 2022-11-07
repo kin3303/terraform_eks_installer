@@ -46,7 +46,7 @@ environment      = "dev"
 # EKS Cluster
 ################################################################################################
 cluster_name = "eks-cluster-dk"
-eks_subnet_ids = [
+cluster_subnet_ids = [
   "subnet-094c4b28ca7d219f0",
   "subnet-075001c74a15ce1e9",
 ]
@@ -54,15 +54,15 @@ eks_subnet_ids = [
 ################################################################################################
 # EKS Node Group
 ################################################################################################
-eks_public_nodegroup_subnet_ids = [
+nodegroup_public_subnet_ids = [
   "subnet-094c4b28ca7d219f0",
   "subnet-075001c74a15ce1e9",
 ]
 
-eks_private_nodegroup_subnet_ids = [
+nodegroup_private_subnet_ids = [
   "subnet-0ad3d30843b74f01c",
   "subnet-0603559f57f8358ef",
 ]
 
-eks_node_ssh_key = "eks-terraform-key"
-eks_node_security_group_ids = ["sg-07bb632c4584ab8ba"]
+nodegroup_ssh_key = "eks-terraform-key"
+nodegroup_ssh_allowed_security_group_ids = ["sg-07bb632c4584ab8ba"]

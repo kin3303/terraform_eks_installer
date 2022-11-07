@@ -22,20 +22,27 @@ kubectl describe ds aws-node -n kube-system
 kubectl describe ds kube-proxy -n kube-system
 kubectl describe deploy coredns -n kube-system
 
-# deployment + service(nlb) 배포 테스트
-kubectl apply -f loadbalancer.yaml
-kubectl get svc nlb-sample-service -n lbtest  
-kubectl delete -f loadbalancer.yaml
-
 ```
 
 ## Bastion Host 에서 EKS Worker Node 접속후 아래 확인
 
 ```console
 cd /tmp
-ssh -i eks-terraform-key.pem ec2-user@<WorkerNodeIP>
+
+# Connect Node
+ssh -i eks-terraform-key.pem ec2-user@<Public-NodeGroup-EC2Instance-PrivateIP>
+ssh -i eks-terraform-key.pem ec2-user@<Public-NodeGroup-EC2Instance-PublicIP>
+
+# Verify if kubelet and kube-proxy running
 ps -ef | grep kube
+
+# Verify kubelet-config.json
 cat /etc/kubernetes/kubelet/kubelet-config.json
+
+# Verify kubelet kubeconfig
 cat /var/lib/kubelet/kubeconfig
-wget <kubernetes endpoint>
-```
+
+# Verify clusters.cluster.server value(EKS Cluster API Server Endpoint) 
+wget <Kubernetes API Server Endpoint>
+wget https://0cbda14fd801e669f05c2444fb16d1b5.gr7.us-east-1.eks.amazonaws.com
+``` 

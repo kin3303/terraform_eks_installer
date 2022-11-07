@@ -29,3 +29,10 @@ output "eks_private_node_group" {
     node_group_private_version = aws_eks_node_group.eks_ng_private.version
   }
 }
+
+output "eks_oidc_provider" {
+  value = {
+    arn  = aws_iam_openid_connect_provider.oidc_provider.arn
+    url  = aws_iam_openid_connect_provider.oidc_provider.url
+  }
+}

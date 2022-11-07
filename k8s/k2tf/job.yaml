@@ -1,0 +1,18 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: irsa-demo 
+  labels:
+    app: irsa-demo  
+spec:
+  template:
+    metadata:
+      labels:
+        app: irsa-demo
+    spec:
+      containers:
+      - name: irsa-demo
+        image: amazon/aws-cli:latest
+        command: ["aws", "s3", "ls"]
+      serviceAccountName: irsa-demo-sa
+      restartPolicy: Never
