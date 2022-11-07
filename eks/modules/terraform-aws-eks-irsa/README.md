@@ -12,9 +12,9 @@ IAM Role 생성시 지원되는 선택적 AWS Policy 는 아래와 같다.
 - [FSx for Lustre CSI Driver](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/docs/README.md)
 - [Karpenter](https://github.com/aws/karpenter/blob/main/website/content/en/preview/getting-started/cloudformation.yaml)
 - [Load Balancer Controller](https://github.com/kubernetes-sigs/aws-load-balancer-controller/blob/main/docs/install/iam_policy.json)
-  - [Load Balancer Controller Target Group Binding Only](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/installation/#iam-permission-subset-for-those-who-use-targetgroupbinding-only-and-dont-plan-to-use-the-aws-load-balancer-controller-to-manage-security-group-rules)
+- [Load Balancer Controller Target Group Binding Only](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/installation/#iam-permission-subset-for-those-who-use-targetgroupbinding-only-and-dont-plan-to-use-the-aws-load-balancer-controller-to-manage-security-group-rules)
 - [App Mesh Controller](https://github.com/aws/aws-app-mesh-controller-for-k8s/blob/master/config/iam/controller-iam-policy.json)
-  - [App Mesh Envoy Proxy](https://raw.githubusercontent.com/aws/aws-app-mesh-controller-for-k8s/master/config/iam/envoy-iam-policy.json)
+- [App Mesh Envoy Proxy](https://raw.githubusercontent.com/aws/aws-app-mesh-controller-for-k8s/master/config/iam/envoy-iam-policy.json)
 - [Managed Service for Prometheus](https://docs.aws.amazon.com/prometheus/latest/userguide/set-up-irsa.html)
 - [Node Termination Handler](https://github.com/aws/aws-node-termination-handler#5-create-an-iam-role-for-the-pods)
 - [Velero](https://github.com/vmware-tanzu/velero-plugin-for-aws#option-1-set-permissions-with-an-iam-user)
@@ -27,19 +27,51 @@ EKS에서 '서비스 계정'이 IAM 역할을 수행할 수 있는 방법에 대
 이 모듈의 기본 설정은 아래와 같다.
 
 ```hcl
-module "iam_eks_role" {
-  source    = "../eks/modules/iam-role-for-service-accounts-eks"
-  role_name = "my-app"
+# 기존
+locals {
+  oidc_provider_arn         = data.terraform_remote_state.eks.outputs.eks_oidc_provider.arn
+}
 
-  oidc_providers = {
-    one = {
-      provider_arn               = "arn:aws:iam::012345678901:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/5C54DDF35ER19312844C7333374CC09D"
-      namespace_service_accounts = ["default:my-app-staging", "canary:my-app-staging"]
-    }
-    two = {
-      provider_arn               = "arn:aws:iam::012345678901:oidc-provider/oidc.eks.ap-southeast-1.amazonaws.com/id/5C54DDF35ER54476848E7333374FF09G"
-      namespace_service_accounts = ["default:my-app-staging"]
-    }
+
+resource "aws_iam_role" "irsa_s3_read_only_role" {
+  name = "irsa-s3-readonly-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Federated =  "${replace(local.oidc_provider_arn, "/^(.*provider/)/", "")}:sub" # https://docs.aws.amazon.com/ko_kr/IAM/latest/UserGuide/id_roles_providers.html
+        }
+        Condition = {
+          StringEquals = { #oidc.eks.ap-northeast-2.amazonaws.com/id/A9CA35794A78F8EF8F3A154C3B892A73:sub
+            "${local.oidc_provider_url_extract}" : "system:serviceaccount:default:${var.sa_s3_readonly}"
+          }
+        }
+      },
+    ]
+  })
+
+  tags = {
+    tag-key = "irsa-s3-readonly-role"
   }
+}
+
+resource "aws_iam_role_policy_attachment" "irsa_iam_role_policy_attach" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  role       = aws_iam_role.irsa_s3_read_only_role.name
+}
+
+
+# 모듈 
+module "eks_irsa_role" {
+  source                     = "../eks/modules/terraform-aws-eks-irsa"
+  provider_arn               = local.oidc_provider_arn
+  role_name                  = "irsa-s3-readonly-role"
+  namespace_service_accounts = ["default:${var.sa_s3_readonly}"]
+  role_policy_arns           = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
 }
 ```
