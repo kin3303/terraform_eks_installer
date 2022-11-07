@@ -19,10 +19,6 @@ IAM Role 생성시 지원되는 선택적 AWS Policy 는 아래와 같다.
 - [Node Termination Handler](https://github.com/aws/aws-node-termination-handler#5-create-an-iam-role-for-the-pods)
 - [Velero](https://github.com/vmware-tanzu/velero-plugin-for-aws#option-1-set-permissions-with-an-iam-user)
 - [VPC CNI](https://docs.aws.amazon.com/eks/latest/userguide/cni-iam-role.html)
- 
-EKS에서 '서비스 계정'이 IAM 역할을 수행할 수 있는 방법에 대한 자세한 내용은 아래 페이지를 참고하자.
-- [EKS documentation](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html).
-
 
 이 모듈의 기본 설정은 아래와 같다.
 
