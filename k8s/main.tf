@@ -256,11 +256,6 @@ resource "kubernetes_pod_v1" "app_gp_3" {
 locals {
   configmap_roles = [
     {
-      rolearn  = data.terraform_remote_state.eks.outputs.eks_roles.nodegroup_role_arn
-      username = "system:node:{{EC2PrivateDNSName}}"
-      groups   = ["system:bootstrappers", "system:nodes"]
-    },
-    {
       rolearn  = aws_iam_role.eks_admin_role.arn
       username = "eks-admin"
       groups   = ["system:masters"]
@@ -290,10 +285,25 @@ locals {
   ]
 }
 
+module "eks_auth_controller" {
+  source = "../eks/modules/terraform-aws-eks-auth"
+  manage_aws_auth_configmap = true
+  create_aws_auth_configmap = true
+  aws_auth_node_iam_role_arns = [data.terraform_remote_state.eks.outputs.eks_roles.nodegroup_role_arn]
+  aws_auth_roles = local.configmap_roles
+  aws_auth_users = local.configmap_users
+ 
+  depends_on = [
+    aws_iam_role.eks_admin_role,
+    aws_iam_role.eks_readonly_role,
+    aws_iam_role.eks_developer_role,
+    kubernetes_cluster_role_binding_v1.eksreadonly_clusterrolebinding,
+    kubernetes_cluster_role_binding_v1.eksdeveloper_clusterrolebinding,
+    kubernetes_role_binding_v1.eksdeveloper_rolebinding
+  ]
+}
 
-###########################################################################
 # k8s Auth - Test user auth
-###########################################################################
 resource "aws_iam_user" "admin_user" {
   name          = "eksadmin1"
   path          = "/"
@@ -331,29 +341,8 @@ resource "aws_iam_user_policy" "basic_user_eks_policy" {
     ]
   })
 }
-
-resource "kubernetes_config_map_v1" "aws_auth" {
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-
-  data = {
-    mapRoles = yamlencode(local.configmap_roles)
-    mapUsers = yamlencode(local.configmap_users)
-  }
-
-  depends_on = [
-    aws_iam_role.eks_admin_role,
-    aws_iam_role.eks_readonly_role,
-    aws_iam_role.eks_developer_role,
-    kubernetes_cluster_role_binding_v1.eksreadonly_clusterrolebinding,
-    kubernetes_cluster_role_binding_v1.eksdeveloper_clusterrolebinding,
-    kubernetes_role_binding_v1.eksdeveloper_rolebinding
-  ]
-}
-
-# terraform import kubernetes_config_map_v1.aws_auth kube-system/aws-auth
+ 
+ 
 # terraform apply --auto-approve
 # aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
 # kubectl -n kube-system get configmap aws-auth -o yaml
@@ -369,9 +358,8 @@ resource "kubernetes_config_map_v1" "aws_auth" {
 # kubectl get nodes
 
 
-###########################################################################
+
 # k8s Auth - Test role auth
-###########################################################################
 
 # Role
 resource "aws_iam_role" "eks_admin_role" {
@@ -508,9 +496,8 @@ resource "aws_iam_group_membership" "eksadmins_membership" {
 #           Configuration Tab
 
 
-###########################################################################
+
 # k8s Auth - Test role auth (readonly)
-###########################################################################
 
 resource "aws_iam_role" "eks_readonly_role" {
   name = "eks-readonly-role"
@@ -656,9 +643,8 @@ resource "kubernetes_cluster_role_binding_v1" "eksreadonly_clusterrolebinding" {
 #    cat $HOME/.kube/config
 #    kubectl -n kube-system get configmap aws-auth -o yaml
 
-###########################################################################
+
 # k8s Auth - Test role auth (developer)
-###########################################################################
 
 resource "aws_iam_role" "eks_developer_role" {
   name = "eks-developer-role"
