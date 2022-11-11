@@ -11,8 +11,8 @@ variable "aws_region" {
 ###########################################################################
 # IRSA - Service Accounts
 ###########################################################################
-variable "sa_s3_readonly" { 
-  type        = string
-  default     = "s3-readonly-sa"
+variable "sa_s3_readonly" {
+  type    = string
+  default = "s3-readonly-sa"
 }
 

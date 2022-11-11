@@ -49,6 +49,6 @@ resource "aws_iam_role" "this" {
 
 resource "aws_iam_role_policy_attachment" "this" {
   count      = length(var.role_policy_arns)
-  role       = aws_iam_role.this[0].name
+  role       = aws_iam_role.this.name
   policy_arn = element(var.role_policy_arns, count.index)
 }

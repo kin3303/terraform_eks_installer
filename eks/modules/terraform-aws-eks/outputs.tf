@@ -1,3 +1,20 @@
+data "aws_eks_cluster" "cluster" {
+  name = aws_eks_cluster.eks_cluster.id
+}
+
+data "aws_eks_cluster_auth" "cluster_auth" {
+  name = aws_eks_cluster.eks_cluster.id
+}
+
+output "kubeconfig" {
+  value = {
+    host                   = aws_eks_cluster.eks_cluster.endpoint
+    cluster_ca_certificate = base64decode(aws_eks_cluster.eks_cluster.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.cluster_auth.token
+  }
+  sensitive = true
+}
+
 output "eks_cluster" {
   value = {
     cluster_id                         = aws_eks_cluster.eks_cluster.id
@@ -32,7 +49,14 @@ output "eks_private_node_group" {
 
 output "eks_oidc_provider" {
   value = {
-    arn  = aws_iam_openid_connect_provider.oidc_provider.arn
-    url  = aws_iam_openid_connect_provider.oidc_provider.url
+    arn = aws_iam_openid_connect_provider.oidc_provider.arn
+    url = aws_iam_openid_connect_provider.oidc_provider.url
+  }
+}
+
+output "eks_roles" {
+  value = {
+    master_role_arn    = aws_iam_role.eks_master_role.arn
+    nodegroup_role_arn = aws_iam_role.eks_nodegroup_role.arn
   }
 }
