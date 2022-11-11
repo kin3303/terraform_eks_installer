@@ -95,7 +95,7 @@ resource "kubernetes_deployment_v1" "example" {
 
   depends_on = [
     module.eks_s3_readonly_role
-  ]  
+  ]
 }
 
 # terraform init
@@ -253,12 +253,12 @@ resource "kubernetes_pod_v1" "app_gp_3" {
 ###########################################################################
 # k8s Auth aws-auth ConfigMap
 ###########################################################################
- locals {
+locals {
   configmap_roles = [
     {
-      rolearn = data.terraform_remote_state.eks.outputs.eks_roles.nodegroup_role_arn
+      rolearn  = data.terraform_remote_state.eks.outputs.eks_roles.nodegroup_role_arn
       username = "system:node:{{EC2PrivateDNSName}}"
-      groups = ["system:bootstrappers", "system:nodes"]
+      groups   = ["system:bootstrappers", "system:nodes"]
     },
     {
       rolearn  = aws_iam_role.eks_admin_role.arn
@@ -278,14 +278,14 @@ resource "kubernetes_pod_v1" "app_gp_3" {
   ]
   configmap_users = [
     {
-      userarn = aws_iam_user.admin_user.arn
+      userarn  = aws_iam_user.admin_user.arn
       username = aws_iam_user.admin_user.name
-      groups = ["system:masters"]
+      groups   = ["system:masters"]
     },
     {
-      userarn = aws_iam_user.basic_user.arn
+      userarn  = aws_iam_user.basic_user.arn
       username = aws_iam_user.basic_user.name
-      groups = ["system:masters"]
+      groups   = ["system:masters"]
     },
   ]
 }
@@ -295,14 +295,14 @@ resource "kubernetes_pod_v1" "app_gp_3" {
 # k8s Auth - Test user auth
 ###########################################################################
 resource "aws_iam_user" "admin_user" {
-  name = "eksadmin1"
-  path = "/"
+  name          = "eksadmin1"
+  path          = "/"
   force_destroy = true
 }
 
 resource "aws_iam_user" "basic_user" {
-  name = "eksbasic1"  
-  path = "/"
+  name          = "eksbasic1"
+  path          = "/"
   force_destroy = true
 }
 
@@ -334,7 +334,7 @@ resource "aws_iam_user_policy" "basic_user_eks_policy" {
 
 resource "kubernetes_config_map_v1" "aws_auth" {
   metadata {
-    name = "aws-auth"
+    name      = "aws-auth"
     namespace = "kube-system"
   }
 
@@ -349,7 +349,7 @@ resource "kubernetes_config_map_v1" "aws_auth" {
     aws_iam_role.eks_developer_role,
     kubernetes_cluster_role_binding_v1.eksreadonly_clusterrolebinding,
     kubernetes_cluster_role_binding_v1.eksdeveloper_clusterrolebinding,
-    kubernetes_role_binding_v1.eksdeveloper_rolebinding    
+    kubernetes_role_binding_v1.eksdeveloper_rolebinding
   ]
 }
 
@@ -836,18 +836,287 @@ resource "kubernetes_role_binding_v1" "eksdeveloper_rolebinding" {
 #     https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/ingress/ingress_class/
 ###########################################################################
 resource "kubernetes_ingress_class_v1" "ingress_class_default" {
-
   metadata {
     name = "my-aws-ingress-class"
     annotations = {
       "ingressclass.kubernetes.io/is-default-class" = "true"
     }
   }
+
   spec {
     controller = "ingress.k8s.aws/alb"
   }
+}
 
-  depends_on = [
-    helm_release.loadbalancer_controller
-  ]
+resource "kubernetes_deployment_v1" "app_1__nginx_deployment" {
+  metadata {
+    name = "app1-nginx-deployment"
+
+    labels = {
+      app = "app1-nginx"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "app1-nginx"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "app1-nginx"
+        }
+      }
+
+      spec {
+        container {
+          name  = "app1-nginx"
+          image = "kin3303/mynginx1"
+
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "app_1__nginx_nodeport_service" {
+  metadata {
+    name = "app1-nginx-nodeport-service"
+
+    labels = {
+      app = "app1-nginx"
+    }
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/app1/index.html"
+    }
+  }
+
+  spec {
+    port {
+      port        = 80
+      target_port = "80"
+    }
+
+    selector = {
+      app = "app1-nginx"
+    }
+
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_deployment_v1" "app_2__nginx_deployment" {
+  metadata {
+    name = "app2-nginx-deployment"
+
+    labels = {
+      app = "app2-nginx"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "app2-nginx"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "app2-nginx"
+        }
+      }
+
+      spec {
+        container {
+          name  = "app2-nginx"
+          image = "kin3303/mynginx2"
+
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "app_2__nginx_nodeport_service" {
+  metadata {
+    name = "app2-nginx-nodeport-service"
+
+    labels = {
+      app = "app2-nginx"
+    }
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/app2/index.html"
+    }
+  }
+
+  spec {
+    port {
+      port        = 80
+      target_port = "80"
+    }
+
+    selector = {
+      app = "app2-nginx"
+    }
+
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_deployment_v1" "default_nginx_deployment" {
+  metadata {
+    name = "default-nginx-deployment"
+    labels = {
+      app = "default-nginx"
+    }
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "default-nginx"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "default-nginx"
+        }
+      }
+
+      spec {
+        container {
+          name  = "default-nginx"
+          image = "nginx:latest"
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "default_nginx_nodeport_service" {
+  metadata {
+    name = "default-nginx-nodeport-service"
+
+    labels = {
+      app = "default-nginx"
+    }
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/index.html"
+    }
+  }
+
+  spec {
+    port {
+      port        = 80
+      target_port = "80"
+    }
+
+    selector = {
+      app = "default-nginx"
+    }
+
+    type = "NodePort"
+  }
+}
+
+
+resource "kubernetes_ingress_v1" "ingress_conthext_path_test" {
+  metadata {
+    name = "ingress-conthext-path-test"
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "15"
+      "alb.ingress.kubernetes.io/healthcheck-port" = "traffic-port"
+      "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
+      "alb.ingress.kubernetes.io/healthcheck-timeout-seconds" = "5"
+      "alb.ingress.kubernetes.io/healthy-threshold-count" = "2"
+      "alb.ingress.kubernetes.io/load-balancer-name" = "ingress-cpr"
+      "alb.ingress.kubernetes.io/scheme" = "internet-facing"
+      "alb.ingress.kubernetes.io/success-codes" = "200"
+      "alb.ingress.kubernetes.io/unhealthy-threshold-count" = "2"
+    }
+  }
+
+  spec {
+    ingress_class_name = "my-aws-ingress-class"
+
+    default_backend {
+      service {
+        name = "default-nginx-nodeport-service"
+        port {
+          number = 80
+        }
+      }
+    }
+
+    rule {
+      http {
+        path {
+          path      = "/app1"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "app1-nginx-nodeport-service"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+
+        path {
+          path      = "/app2"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "app2-nginx-nodeport-service"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+
+        path {
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "default-nginx-nodeport-service"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
