@@ -14,6 +14,8 @@ resource "kubernetes_service_v1" "nlb_sample_service" {
 
     annotations = {
       "service.beta.kubernetes.io/aws-load-balancer-type" = "nlb"
+      # External DNS - Create Record Set to AWS Route 53
+      "external-dns.alpha.kubernetes.io/hostname" = "sample.idtplateer.com"
     }
   }
 
@@ -286,13 +288,13 @@ locals {
 }
 
 module "eks_auth_controller" {
-  source = "../eks/modules/terraform-aws-eks-auth"
-  manage_aws_auth_configmap = true
-  create_aws_auth_configmap = true
+  source                      = "../eks/modules/terraform-aws-eks-auth"
+  manage_aws_auth_configmap   = true
+  create_aws_auth_configmap   = false
   aws_auth_node_iam_role_arns = [data.terraform_remote_state.eks.outputs.eks_roles.nodegroup_role_arn]
-  aws_auth_roles = local.configmap_roles
-  aws_auth_users = local.configmap_users
- 
+  aws_auth_roles              = local.configmap_roles
+  aws_auth_users              = local.configmap_users
+
   depends_on = [
     aws_iam_role.eks_admin_role,
     aws_iam_role.eks_readonly_role,
@@ -341,8 +343,8 @@ resource "aws_iam_user_policy" "basic_user_eks_policy" {
     ]
   })
 }
- 
- 
+
+
 # terraform apply --auto-approve
 # aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
 # kubectl -n kube-system get configmap aws-auth -o yaml
@@ -777,7 +779,6 @@ resource "kubernetes_namespace_v1" "k8s_dev" {
 resource "kubernetes_role_v1" "eksdeveloper_role" {
   metadata {
     name      = "eksdeveloper-role"
-    namespace = "dev"
   }
 
   rule {
@@ -795,7 +796,6 @@ resource "kubernetes_role_v1" "eksdeveloper_role" {
 resource "kubernetes_role_binding_v1" "eksdeveloper_rolebinding" {
   metadata {
     name      = "eksdeveloper-rolebinding"
-    namespace = "dev"
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -834,6 +834,9 @@ resource "kubernetes_ingress_class_v1" "ingress_class_default" {
   }
 }
 
+###########################################################################
+# Ingress 
+###########################################################################
 resource "kubernetes_deployment_v1" "app_1__nginx_deployment" {
   metadata {
     name = "app1-nginx-deployment"
@@ -1029,21 +1032,81 @@ resource "kubernetes_service_v1" "default_nginx_nodeport_service" {
   }
 }
 
+# SSL Certificate (Amazon Issued)
+/*
+resource "aws_acm_certificate" "acm_cert" {
+  domain_name       = "k8s.idtplateer.com"
+  validation_method = "DNS" 
+
+  lifecycle {
+    create_before_destroy = true
+   }
+}
+
+data "aws_route53_zone" "zone" {
+  name         = "idtplateer.com"
+  private_zone = false
+}
+
+resource "aws_route53_record" "dns_record" {
+  for_each = {
+    for dvo in aws_acm_certificate.acm_cert.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.zone.zone_id
+}
+
+resource "aws_acm_certificate_validation" "example" {
+  certificate_arn         = aws_acm_certificate.acm_cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.dns_record : record.fqdn]
+}
+*/
+
+# Annotations
+#   https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.1/guide/ingress/annotations/
+# SSL
+#   https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.1/guide/ingress/cert_discovery/
+# External DNS Annoatation
+#   https://github.com/kubernetes-sigs/external-dns/tree/master/charts/external-dns#configuration
+#   https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/alb-ingress.md
+#   https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
 
 resource "kubernetes_ingress_v1" "ingress_conthext_path_test" {
   metadata {
     name = "ingress-conthext-path-test"
 
     annotations = {
-      "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "15"
-      "alb.ingress.kubernetes.io/healthcheck-port" = "traffic-port"
-      "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
-      "alb.ingress.kubernetes.io/healthcheck-timeout-seconds" = "5"
-      "alb.ingress.kubernetes.io/healthy-threshold-count" = "2"
+      # Load balancer name
       "alb.ingress.kubernetes.io/load-balancer-name" = "ingress-cpr"
+
+      # Ingress core settings
       "alb.ingress.kubernetes.io/scheme" = "internet-facing"
-      "alb.ingress.kubernetes.io/success-codes" = "200"
-      "alb.ingress.kubernetes.io/unhealthy-threshold-count" = "2"
+
+      # Health check settings
+      "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "15"
+      "alb.ingress.kubernetes.io/healthcheck-port"             = "traffic-port"
+      "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
+      "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "5"
+      "alb.ingress.kubernetes.io/healthy-threshold-count"      = "2"
+      "alb.ingress.kubernetes.io/success-codes"                = "200"
+      "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "2"
+
+      # SSL
+      "alb.ingress.kubernetes.io/listen-ports" = jsonencode([{ "HTTPS" = 443 }, { "HTTP" = 80 }])
+      #"alb.ingress.kubernetes.io/certificate-arn" = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4"
+      #"alb.ingress.kubernetes.io/ssl-policy" = "ELBSecurityPolicy-TLS-1-1-2017-01"
+      "alb.ingress.kubernetes.io/ssl-redirect" = 443
+
+      # External DNS - Create Record Set to AWS Route 53
+      "external-dns.alpha.kubernetes.io/hostname" = "k8s.idtplateer.com"
     }
   }
 
@@ -1052,12 +1115,299 @@ resource "kubernetes_ingress_v1" "ingress_conthext_path_test" {
 
     default_backend {
       service {
-        name = "default-nginx-nodeport-service"
+        name = kubernetes_service_v1.default_nginx_nodeport_service.metadata[0].name
         port {
           number = 80
         }
       }
     }
+
+    tls {
+      hosts = ["*.idtplateer.com"]
+    }
+
+    rule {
+      host = "k8sapp1.idtplateer.com"
+      http {
+        path {
+          #path      = "/app1"
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = kubernetes_service_v1.app_1__nginx_nodeport_service.metadata[0].name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+
+    rule {
+      host = "k8sapp2.idtplateer.com"
+      http {
+        path {
+          #path      = "/app2"
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = kubernetes_service_v1.app_2__nginx_nodeport_service.metadata[0].name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Check Ingress
+#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+#    
+
+
+###########################################################################
+# Ingress Group
+###########################################################################
+resource "kubernetes_deployment_v1" "app_1_group_nginx_deployment" {
+  metadata {
+    name = "app1-group-nginx-deployment"
+
+    labels = {
+      app = "app1-group-nginx"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "app1-group-nginx"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "app1-group-nginx"
+        }
+      }
+
+      spec {
+        container {
+          name  = "app1-group-nginx"
+          image = "kin3303/mynginx1"
+
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "app_1_group_nginx_nodeport_service" {
+  metadata {
+    name = "app1-group-nginx-nodeport-service"
+
+    labels = {
+      app = "app1-group-nginx"
+    }
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/app1/index.html"
+    }
+  }
+
+  spec {
+    port {
+      port        = 80
+      target_port = "80"
+    }
+
+    selector = {
+      app = "app1-group-nginx"
+    }
+
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_deployment_v1" "app_2_group_nginx_deployment" {
+  metadata {
+    name = "app2-group-nginx-deployment"
+
+    labels = {
+      app = "app2-group-nginx"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "app2-group-nginx"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "app2-group-nginx"
+        }
+      }
+
+      spec {
+        container {
+          name  = "app2-group-nginx"
+          image = "kin3303/mynginx2"
+
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "app_2_group_nginx_nodeport_service" {
+  metadata {
+    name = "app2-group-nginx-nodeport-service"
+
+    labels = {
+      app = "app2-group-nginx"
+    }
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/app2/index.html"
+    }
+  }
+
+  spec {
+    port {
+      port        = 80
+      target_port = "80"
+    }
+
+    selector = {
+      app = "app2-group-nginx"
+    }
+
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_deployment_v1" "default_group_nginx_deployment" {
+  metadata {
+    name = "default-group-nginx-deployment"
+    labels = {
+      app = "default-group-nginx"
+    }
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "default-group-nginx"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "default-group-nginx"
+        }
+      }
+
+      spec {
+        container {
+          name  = "default-group-nginx"
+          image = "nginx:latest"
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "default_group_nginx_nodeport_service" {
+  metadata {
+    name = "default-group-nginx-nodeport-service"
+
+    labels = {
+      app = "default-group-nginx"
+    }
+
+    annotations = {
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/index.html"
+    }
+  }
+
+  spec {
+    port {
+      port        = 80
+      target_port = "80"
+    }
+
+    selector = {
+      app = "default-group-nginx"
+    }
+
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_ingress_v1" "ingress_group_app1" {
+  metadata {
+    name = "ingress-group-test-app1"
+
+    annotations = {
+      # Load balancer name
+      "alb.ingress.kubernetes.io/load-balancer-name" = "ingress-group"
+
+      # Ingress core settings
+      "alb.ingress.kubernetes.io/scheme" = "internet-facing"
+
+      # Health check settings
+      "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "15"
+      "alb.ingress.kubernetes.io/healthcheck-port"             = "traffic-port"
+      "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
+      "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "5"
+      "alb.ingress.kubernetes.io/healthy-threshold-count"      = "2"
+      "alb.ingress.kubernetes.io/success-codes"                = "200"
+      "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "2"
+
+      # SSL
+      "alb.ingress.kubernetes.io/listen-ports"    = jsonencode([{ "HTTPS" = 443 }, { "HTTP" = 80 }])
+      "alb.ingress.kubernetes.io/certificate-arn" = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4"
+      "alb.ingress.kubernetes.io/ssl-policy"      = "ELBSecurityPolicy-TLS-1-1-2017-01"
+      "alb.ingress.kubernetes.io/ssl-redirect"    = 443
+
+      # External DNS - Create Record Set to AWS Route 53
+      "external-dns.alpha.kubernetes.io/hostname" = "k8sgroup.idtplateer.com"
+
+      # Ingress Groups
+      "alb.ingress.kubernetes.io/group.name"  = "myapps.web"
+      "alb.ingress.kubernetes.io/group.order" = 10
+    }
+  }
+
+  spec {
+    ingress_class_name = "my-aws-ingress-class"
 
     rule {
       http {
@@ -1067,40 +1417,119 @@ resource "kubernetes_ingress_v1" "ingress_conthext_path_test" {
 
           backend {
             service {
-              name = "app1-nginx-nodeport-service"
+              name = kubernetes_service_v1.app_1_group_nginx_nodeport_service.metadata[0].name
               port {
                 number = 80
               }
             }
           }
         }
+      }
+    }
+  }
+}
 
+resource "kubernetes_ingress_v1" "ingress_group_app2" {
+  metadata {
+    name = "ingress-group-test-app2"
+
+    annotations = {
+      # Load balancer name
+      "alb.ingress.kubernetes.io/load-balancer-name" = "ingress-group"
+
+      # Ingress core settings
+      "alb.ingress.kubernetes.io/scheme" = "internet-facing"
+
+      # Health check settings
+      "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "15"
+      "alb.ingress.kubernetes.io/healthcheck-port"             = "traffic-port"
+      "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
+      "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "5"
+      "alb.ingress.kubernetes.io/healthy-threshold-count"      = "2"
+      "alb.ingress.kubernetes.io/success-codes"                = "200"
+      "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "2"
+
+      # SSL
+      "alb.ingress.kubernetes.io/listen-ports"    = jsonencode([{ "HTTPS" = 443 }, { "HTTP" = 80 }])
+      "alb.ingress.kubernetes.io/certificate-arn" = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4"
+      "alb.ingress.kubernetes.io/ssl-policy"      = "ELBSecurityPolicy-TLS-1-1-2017-01"
+      "alb.ingress.kubernetes.io/ssl-redirect"    = 443
+
+      # External DNS - Create Record Set to AWS Route 53
+      "external-dns.alpha.kubernetes.io/hostname" = "k8sgroup.idtplateer.com"
+
+      # Ingress Groups
+      "alb.ingress.kubernetes.io/group.name"  = "myapps.web"
+      "alb.ingress.kubernetes.io/group.order" = 20
+    }
+  }
+
+  spec {
+    ingress_class_name = "my-aws-ingress-class"
+
+    rule {
+      http {
         path {
           path      = "/app2"
           path_type = "Prefix"
 
           backend {
             service {
-              name = "app2-nginx-nodeport-service"
+              name = kubernetes_service_v1.app_2_group_nginx_nodeport_service.metadata[0].name
               port {
                 number = 80
               }
             }
           }
         }
+      }
+    }
+  }
+}
 
-        path {
-          path      = "/"
-          path_type = "Prefix"
+resource "kubernetes_ingress_v1" "ingress_group_app3" {
+  metadata {
+    name = "ingress-group-test-app3"
 
-          backend {
-            service {
-              name = "default-nginx-nodeport-service"
-              port {
-                number = 80
-              }
-            }
-          }
+    annotations = {
+      # Load balancer name
+      "alb.ingress.kubernetes.io/load-balancer-name" = "ingress-group"
+
+      # Ingress core settings
+      "alb.ingress.kubernetes.io/scheme" = "internet-facing"
+
+      # Health check settings
+      "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "15"
+      "alb.ingress.kubernetes.io/healthcheck-port"             = "traffic-port"
+      "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
+      "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "5"
+      "alb.ingress.kubernetes.io/healthy-threshold-count"      = "2"
+      "alb.ingress.kubernetes.io/success-codes"                = "200"
+      "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "2"
+
+      # SSL
+      "alb.ingress.kubernetes.io/listen-ports"    = jsonencode([{ "HTTPS" = 443 }, { "HTTP" = 80 }])
+      "alb.ingress.kubernetes.io/certificate-arn" = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4"
+      "alb.ingress.kubernetes.io/ssl-policy"      = "ELBSecurityPolicy-TLS-1-1-2017-01"
+      "alb.ingress.kubernetes.io/ssl-redirect"    = 443
+
+      # External DNS - Create Record Set to AWS Route 53
+      "external-dns.alpha.kubernetes.io/hostname" = "k8sgroup.idtplateer.com"
+
+      # Ingress Groups
+      "alb.ingress.kubernetes.io/group.name"  = "myapps.web"
+      "alb.ingress.kubernetes.io/group.order" = 30
+    }
+  }
+
+  spec {
+    ingress_class_name = "my-aws-ingress-class"
+
+    default_backend {
+      service {
+        name = kubernetes_service_v1.default_group_nginx_nodeport_service.metadata[0].name
+        port {
+          number = 80
         }
       }
     }

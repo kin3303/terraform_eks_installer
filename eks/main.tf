@@ -48,7 +48,7 @@ module "eks_ebs_csi_iam_role" {
 
 module "eks_ebs_csi_addon" {
   source       = "./modules/terraform-aws-eks-addon"
-  cluster_name = module.eks.eks_cluster.cluster_id 
+  cluster_name = module.eks.eks_cluster.cluster_id
   cluster_addons = {
     ebs-csi-addon = {
       name                     = "aws-ebs-csi-driver"
@@ -106,14 +106,14 @@ module "eks_alb_controller_iam_role" {
 }
 
 module "eks_alb_controller" {
-  source = "./modules/terraform-aws-eks-alb"
-  vpc_id = "vpc-0528a219b39f1c6f3"
-  aws_region = var.aws_region
-
-  cluster_name = module.eks.eks_cluster.cluster_id
-  service_account_name = "aws-load-balancer-controller"
-  alb_controller_role_arn = module.eks_alb_controller_iam_role.iam_role_arn
-  image_registry = "602401143452.dkr.ecr.ap-northeast-2.amazonaws.com/amazon/aws-load-balancer-controller"
+  source                    = "./modules/terraform-aws-eks-alb"
+  vpc_id                    = "vpc-0528a219b39f1c6f3"
+  aws_region                = var.aws_region
+  cluster_name              = module.eks.eks_cluster.cluster_id
+  service_account_name      = "aws-load-balancer-controller"
+  service_account_namespace = "kube-system"
+  alb_controller_role_arn   = module.eks_alb_controller_iam_role.iam_role_arn
+  image_registry            = "602401143452.dkr.ecr.ap-northeast-2.amazonaws.com/amazon/aws-load-balancer-controller"
 
   depends_on = [
     module.eks_alb_controller_iam_role
@@ -124,3 +124,59 @@ module "eks_alb_controller" {
 # kubectl get deployment -n kube-system aws-load-balancer-controller -o yaml
 # kubectl -n kube-system get svc aws-load-balancer-webhook-service -o yaml
 
+###########################################################################
+# External DNS Controller Install
+###########################################################################
+
+resource "aws_iam_policy" "externaldns_iam_policy" {
+  name        = "${local.name}-AllowExternalDNSUpdates"
+  path        = "/"
+  description = "External DNS IAM Policy"
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "route53:ChangeResourceRecordSets"
+        ],
+        "Resource" : [
+          "arn:aws:route53:::hostedzone/*"
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "route53:ListHostedZones",
+          "route53:ListResourceRecordSets"
+        ],
+        "Resource" : [
+          "*"
+        ]
+      }
+    ]
+  })
+}
+
+module "eks_external_dns_controller_iam_role" {
+  source                     = "./modules/terraform-aws-eks-irsa"
+  provider_arn               = module.eks.eks_oidc_provider.arn
+  role_name                  = "irsa-external-dns-role"
+  namespace_service_accounts = ["default:external-dns"]
+  role_policy_arns           = [aws_iam_policy.externaldns_iam_policy.arn]
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+module "eks_external_dns_controller" {
+  source                    = "./modules/terraform-aws-eks-external-dns"
+  service_account_name      = "external-dns"
+  service_account_namespace = "default"
+  external_dns_role_arn     = module.eks_external_dns_controller_iam_role.iam_role_arn
+
+  depends_on = [
+    module.eks_external_dns_controller_iam_role
+  ]
+}

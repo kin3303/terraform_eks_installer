@@ -10,7 +10,7 @@ resource "helm_release" "loadbalancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
+  namespace  = var.service_account_namespace
 
   # Region 에 따라 Repository URL 변경 : https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
   set {
