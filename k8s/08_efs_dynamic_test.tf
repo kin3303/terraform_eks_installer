@@ -1,0 +1,92 @@
+###########################################################################
+# EFS Test (Dynamic Provisioning - Not working)
+###########################################################################
+#https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml
+resource "kubernetes_storage_class_v1" "efs_sc" {
+  metadata {
+    name = "efs-sc"
+  }
+  parameters = {
+    provisioningMode = "efs-ap"
+    fileSystemId =  data.terraform_remote_state.eks.outputs.eks_efs.efs_file_system_id
+    directoryPerms = "700"
+    gidRangeStart = "1000" # optional
+    gidRangeEnd = "2000" # optional
+    basePath = "/dynamic_provisioning" # optional
+  }  
+  storage_provisioner = "efs.csi.aws.com"
+}
+
+/*
+resource "kubernetes_persistent_volume_v1" "efs_pv" {
+  metadata {
+    name = "efs-pv"
+  }
+  spec {
+    capacity = {
+      storage = "5Gi"
+    }
+    volume_mode                      = "Filesystem"
+    access_modes                     = ["ReadWriteMany"]
+    persistent_volume_reclaim_policy = "Retain"
+    storage_class_name               = kubernetes_storage_class_v1.efs_sc.metadata[0].name
+    persistent_volume_source {
+      csi {
+        driver        = "efs.csi.aws.com"
+        volume_handle = data.terraform_remote_state.eks.outputs.eks_efs.efs_file_system_id
+      }
+    }
+  }
+}
+*/
+
+resource "kubernetes_persistent_volume_claim_v1" "efs_pvc" {
+  metadata {
+    name = "efs-claim"
+  }
+  spec {
+    access_modes       = ["ReadWriteMany"]
+    storage_class_name = kubernetes_storage_class_v1.efs_sc.metadata[0].name
+    resources {
+      requests = {
+        storage = "5Gi"
+      }
+    }
+  }
+}
+
+resource "kubernetes_pod_v1" "efs_write_app_pod" {
+  metadata {
+    name = "efs-write-app"
+  }
+  spec {
+    container {
+      name    = "efs-write-app"
+      image   = "busybox"
+      command = ["/bin/sh"]
+      args    = ["-c", "while true; do echo EFS Kubernetes Static Provisioning Test $(date -u) >> /data/efs-static.txt; sleep 5; done"]
+      volume_mount {
+        name       = "persistent-storage"
+        mount_path = "/data"
+      }
+    }
+    volume {
+      name = "persistent-storage"
+      persistent_volume_claim {
+        claim_name = kubernetes_persistent_volume_claim_v1.efs_pvc.metadata[0].name
+      }
+    }
+  }
+} 
+
+# Check EFS Static Provisioning
+#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+#    kubectl exec --stdin --tty efs-write-app  -- /bin/sh
+#    cd /data
+#    ls
+#    tail -f efs-static.txt
+
+
+###########################################################################
+# EFS Test (Dynamic Provisioning)
+###########################################################################
