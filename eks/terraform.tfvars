@@ -41,6 +41,8 @@ vpc = {
 aws_region       = "ap-northeast-2"
 business_divsion = "idt"
 environment      = "dev"
+vpc_cidr_block   = "10.0.0.0/16"
+vpc_id           = "vpc-0528a219b39f1c6f3"
 
 ################################################################################################
 # EKS Cluster
@@ -64,5 +66,5 @@ nodegroup_private_subnet_ids = [
   "subnet-0603559f57f8358ef",
 ]
 
-nodegroup_ssh_key = "eks-terraform-key"
+nodegroup_ssh_key                        = "eks-terraform-key"
 nodegroup_ssh_allowed_security_group_ids = ["sg-07bb632c4584ab8ba"]

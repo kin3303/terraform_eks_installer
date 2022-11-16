@@ -22,3 +22,13 @@ output "eks_kubeconfig" {
   value = module.eks.kubeconfig
   sensitive = true
 }
+
+
+# EFS
+output "eks_efs" {
+  value = module.eks_efs_csi_controller.eks_efs
+}
+
+output "eks_efs_mount_target" {
+  value = module.eks_efs_csi_controller.eks_efs_mount_target
+}

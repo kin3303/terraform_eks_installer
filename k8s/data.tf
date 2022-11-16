@@ -38,34 +38,53 @@ vpc = {
 /*
 eks_cluster = {
   "cluster_arn" = "arn:aws:eks:ap-northeast-2:960249453675:cluster/eks-cluster-dk"
-  "cluster_certificate_authority_data" = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeU1URXhNREF5TURNMU5Wb1hEVE15TVRFd056QXlNRE0xTlZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTlFCClFJenJyWnBPZUloZWxCVnVqUmhvWlkvajRwNDVyY05BdjlHSGRrSWlxUElqblJrYWlHdW9EcWwrTjhNWlVleXQKZ3VjcElCL3JkMzRtb1JNUzlwNVY5MUpJL3ZTVlRDOEh3YURSUE80WVlYMkIraGdPdzdIRithRVBneURaM2ExeQpiYU1PMjErb29qSlYwbzY2NnB2R2swRUYzZExUSXMweTdYS3dEaGRpYnpJeWwvZnBTbGZnblp2Q0ZoME1Bci94ClFsQTZKWFJQaXJFcVVPbHNObzZqMWxpSVBvWDI4NFJNeW0wTzRBT3lPSFdiQVljSTc4TzhadjhmcGd4MUxONncKeHo1and2Z2RONEFnREVtbmVlSUFseklRWkw4eE9RY05SeXBPTUhUWW14b3hhZDh5T2UrMmlvRThDVlBjMENmSwpSczB2d2ZXZkxqN0cxQldZTVBFQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZLaTd2WDNiNnZQSEtHVFYvQ1JRSWRUdnNWeVFNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBTHNxSFpUTHNSTGsrWEJwbUU5eAp6SHdPMWZ1Nld5K1ZhSEVzSTdCMWYrU0JTdzdZV0V1d2MxQ0VoSTlPbldPa1BBa3A5QTVHa2RjQXBlSSt4UWFxCm94bzJySTRGSU9QVVA5cTNoalZQRVpOL3RDeWRQVE9KclJXK21VWVVPU21xV0tWdEdLZXRrbW1NanlrQWo1TGoKemxRQjVTYlBVSzVTZnFrWG5VSVFMb0Vuc1h1WDdiR0ZaeWl4cXRFeTE0MGJaT29WdnhFMzl0M0JvOUY2Wk1qVgp3RVhhVnFGeUlySTd4TUFrcTlqTVpzTzR4eXJGRlUrN294Mnl6aVJjb0JVRU9uS3NadXloQXppci94bEc5OFdBCkRKM0wwdXFlcXh6MDk4VHExaEIyaEs5S3dGMFJwMG16MUxEK3dza0JQbHIycXlaK2JaTG1PREg1ODJlSjJxOFAKVDBFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
-  "cluster_endpoint" = "https://A580320069C4603A4C760642985A31F0.gr7.ap-northeast-2.eks.amazonaws.com"
-  "cluster_iam_role_arn" = "arn:aws:iam::960249453675:role/eks-master-role-idt-dev-e2f6f333b80828e0"
-  "cluster_iam_role_name" = "eks-master-role-idt-dev-e2f6f333b80828e0"
+  "cluster_certificate_authority_data" = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeU1URXhOakF5TVRreE5sb1hEVE15TVRFeE16QXlNVGt4Tmxvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTnBWCmdmSE9GSmcxeEFWNzJMRkgwbnRsQ2lNb2NzNWx6a081SktDS1NHM3g2dmNId3V3Z1c0QkZqY0g5Wnl4elRMM1EKNDlKN0xHN2VOS1VaZ1EvMG1BVFNoUmRJNmdTUVloSGZnTHA3dU1jVTJDSDhZb1FicDVreVZROWZSVG10eWViWQp3WXlwY1BHcXVNWUVWdTNPTTE4SUsvRlZZMmV6ZVNBbjZmVy9zb2hOZ3FONEI3SHA2Mk01dkhUQ3REOFFPMTZTCnU0MjBTWDhOMEdKczVpTFFYRnpsSGJmRHFWYkk3VEk4Zi9JOVhHM3k3ckRlOGlXL3UzQ05vWkdlV3B4cTB1QjEKTkFVV0p0UExyVkt5TkZCUE1RZUtJWndweU1hTFdQQTNqWnFkTjhlaFIzcXdYL3crbW5hQVROTndaZ3liaEF0VwoxUVJjM0lXbHZZWlhaaExrNkVNQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZJdWhJZW14VXVHUDN3WXlDMmxnZU5ISTIvbEFNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBRUZxSkc0L0xnR2N5dmhwRHRRZgowK3orS0paZ1lYdTdoNmVkZXVCWUU5cmlQZGFGbkVZcjdPakJ6VEpvSlhPM25va3kwQjBzT3AvcHRaWGp6eWdqClNqM0o4RjJQQXZjWHVaVlEwK3JUcVBKb3o3ajJEdTJ5UzF6QmVvcUlKek9Tb1BTNTdlWjZyYTdQbzRYT3QwMG4KRzYreVhvSEcrRHlTM3FXOUt4K1dlbmxtVEc2bG41ajcwdEEzNzdocWdoVklqKzR3TEo5dVZBaFdOMXY5RHlreQowNzNtajdobFZWYUkzQit0MXV1VmhBUXMzeUp6bHhkTzlwc0lhdXppTTVtZHFtc2lPVzF2UGhXcXFqVzBTZDRtCllBQ3hJNmVBWVpHWitXUEFCbWdtOXJBN0lFSkdIenpDN0R4VVdoTXdOZnlQTHFDK0dCOVBYeFViait1Nlo0MTMKWTNnPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+  "cluster_endpoint" = "https://250A48A8ED4623C7903DA4AE910998D2.gr7.ap-northeast-2.eks.amazonaws.com"
+  "cluster_iam_role_arn" = "arn:aws:iam::960249453675:role/eks-master-role-idt-dev-f7ff47aefad1d23d"
+  "cluster_iam_role_name" = "eks-master-role-idt-dev-f7ff47aefad1d23d"
   "cluster_id" = "eks-cluster-dk"
-  "cluster_oidc_issuer_url" = "https://oidc.eks.ap-northeast-2.amazonaws.com/id/A580320069C4603A4C760642985A31F0"
-  "cluster_primary_security_group_id" = "sg-0cb32c3a6a38e31bc"
+  "cluster_oidc_issuer_url" = "https://oidc.eks.ap-northeast-2.amazonaws.com/id/250A48A8ED4623C7903DA4AE910998D2"
+  "cluster_primary_security_group_id" = "sg-0729a545635ab0030"
   "cluster_version" = "1.22"
 }
+eks_efs = {
+  "efs_file_system_dns_name" = "fs-02b8a61822cdc4f1f.efs.ap-northeast-2.amazonaws.com"
+  "efs_file_system_id" = "fs-02b8a61822cdc4f1f"
+}
+eks_efs_mount_target = {
+  "efs_mount_target_availability_zone_name" = [
+    "ap-northeast-2b",
+    "ap-northeast-2a",
+  ]
+  "efs_mount_target_dns_name" = [
+    "ap-northeast-2b.fs-02b8a61822cdc4f1f.efs.ap-northeast-2.amazonaws.com",
+    "ap-northeast-2a.fs-02b8a61822cdc4f1f.efs.ap-northeast-2.amazonaws.com",
+  ]
+  "efs_mount_target_id" = [
+    "fsmt-091fe0d75a9cba843",
+    "fsmt-084bfa396b79837e2",
+  ]
+}
+eks_kubeconfig = <sensitive>
 eks_oidc_provider = {
-  "arn" = "arn:aws:iam::960249453675:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/A580320069C4603A4C760642985A31F0"
-  "url" = "oidc.eks.ap-northeast-2.amazonaws.com/id/A580320069C4603A4C760642985A31F0"
+  "arn" = "arn:aws:iam::960249453675:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/250A48A8ED4623C7903DA4AE910998D2"
+  "url" = "oidc.eks.ap-northeast-2.amazonaws.com/id/250A48A8ED4623C7903DA4AE910998D2"
 }
 eks_private_node_group = {
-  "node_group_private_arn" = "arn:aws:eks:ap-northeast-2:960249453675:nodegroup/eks-cluster-dk/eks-ng-private-idt-dev-e2f6f333b80828e0/50c22fa6-93b9-a67b-2158-23f9f0e59e0e"
-  "node_group_private_id" = "eks-cluster-dk:eks-ng-private-idt-dev-e2f6f333b80828e0"
+  "node_group_private_arn" = "arn:aws:eks:ap-northeast-2:960249453675:nodegroup/eks-cluster-dk/eks-ng-private-idt-dev-f7ff47aefad1d23d/bcc23f20-3808-b8e2-7ce4-4cc6dae235cb"
+  "node_group_private_id" = "eks-cluster-dk:eks-ng-private-idt-dev-f7ff47aefad1d23d"
   "node_group_private_status" = "ACTIVE"
   "node_group_private_version" = "1.22"
 }
 eks_public_node_group = {
-  "node_group_public_arn" = "arn:aws:eks:ap-northeast-2:960249453675:nodegroup/eks-cluster-dk/eks-ng-public-idt-dev-e2f6f333b80828e0/08c22fa6-93b6-4641-8394-6400dc9286a1"
-  "node_group_public_id" = "eks-cluster-dk:eks-ng-public-idt-dev-e2f6f333b80828e0"
+  "node_group_public_arn" = "arn:aws:eks:ap-northeast-2:960249453675:nodegroup/eks-cluster-dk/eks-ng-public-idt-dev-f7ff47aefad1d23d/34c23f20-381c-d91f-9936-98c43477a10a"
+  "node_group_public_id" = "eks-cluster-dk:eks-ng-public-idt-dev-f7ff47aefad1d23d"
   "node_group_public_status" = "ACTIVE"
   "node_group_public_version" = "1.22"
 }
 eks_roles = {
-  "master_role_arn" = "arn:aws:iam::960249453675:role/eks-master-role-idt-dev-e2f6f333b80828e0"
-  "nodegroup_role_arn" = "arn:aws:iam::960249453675:role/eks-nodegroup-role-idt-dev-e2f6f333b80828e0"
+  "master_role_arn" = "arn:aws:iam::960249453675:role/eks-master-role-idt-dev-f7ff47aefad1d23d"
+  "nodegroup_role_arn" = "arn:aws:iam::960249453675:role/eks-nodegroup-role-idt-dev-f7ff47aefad1d23d"
 }
 */
 

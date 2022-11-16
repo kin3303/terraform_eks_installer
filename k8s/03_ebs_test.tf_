@@ -1,0 +1,74 @@
+###########################################################################
+# EBS Addon Test
+###########################################################################
+/*
+resource "kubernetes_storage_class_v1" "ebs-sc" {
+  metadata {
+    name = "ebs-sc"
+  }
+
+  parameters = {
+    type = "gp3"
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  reclaim_policy         = "Retain"
+  allow_volume_expansion = true
+  volume_binding_mode    = "WaitForFirstConsumer"
+  depends_on = [
+     module.eks_ebs_csi_iam_role,
+     aws_eks_addon.ebs-csi-addon
+  ]
+}
+
+resource "kubernetes_persistent_volume_claim_v1" "pvc_ebs" {
+  metadata {
+    name = "ebs-pvc"
+  }
+
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = kubernetes_storage_class_v1.ebs-sc.metadata.0.name
+    resources {
+      requests = {
+        storage = "4Gi"
+      }
+    }
+  }
+}
+
+resource "kubernetes_pod_v1" "app_gp_3" {
+  metadata {
+    name = "app-gp3"
+  }
+
+  spec {
+    volume {
+      name = "persistent-storage"
+
+      persistent_volume_claim {
+        claim_name = kubernetes_persistent_volume_claim_v1.pvc_ebs.metadata.0.name
+      }
+    }
+
+    container {
+      name    = "app"
+      image   = "centos"
+      command = ["/bin/sh"]
+      args    = ["-c", "while true; do echo $(date -u) >> /data/out.txt; sleep 5; done"]
+
+      volume_mount {
+        name       = "persistent-storage"
+        mount_path = "/data"
+      }
+    }
+  }
+}
+*/
+
+# terraform init
+# terraform apply --auto-approve
+# aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+# kubectl get pod
+# kubectl get pvc
+# kubectl get pv <PVC_VOLUME_ID> 

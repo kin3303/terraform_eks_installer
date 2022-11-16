@@ -15,7 +15,7 @@ resource "helm_release" "loadbalancer_controller" {
   # Region 에 따라 Repository URL 변경 : https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
   set {
     name  = "image.repository"
-    value = var.image_registry
+    value = "602401143452.dkr.ecr.${var.aws_region}.amazonaws.com/amazon/aws-load-balancer-controller"
   }
 
   set {

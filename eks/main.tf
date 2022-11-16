@@ -12,7 +12,6 @@ locals {
 ################################################################################
 # EKS Installation
 ################################################################################
-
 module "eks" {
   source = "./modules/terraform-aws-eks" #"git@github.com:kin3303/eks_installer.git//eks/modules/terraform-aws-eks?ref=v1.2.0"
   # Common
@@ -33,7 +32,6 @@ module "eks" {
 ################################################################################
 # EKS Addon Installation (EBS CSI Controller)
 ################################################################################
-
 module "eks_ebs_csi_iam_role" {
   source                     = "./modules/terraform-aws-eks-irsa"
   provider_arn               = module.eks.eks_oidc_provider.arn
@@ -77,7 +75,6 @@ module "eks_ebs_csi_addon" {
 ###########################################################################
 # ALB Controller Install
 ###########################################################################
-
 data "http" "lbc_iam_policy" {
   url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json"
 
@@ -113,7 +110,6 @@ module "eks_alb_controller" {
   service_account_name      = "aws-load-balancer-controller"
   service_account_namespace = "kube-system"
   alb_controller_role_arn   = module.eks_alb_controller_iam_role.iam_role_arn
-  image_registry            = "602401143452.dkr.ecr.ap-northeast-2.amazonaws.com/amazon/aws-load-balancer-controller"
 
   depends_on = [
     module.eks_alb_controller_iam_role
@@ -124,10 +120,10 @@ module "eks_alb_controller" {
 # kubectl get deployment -n kube-system aws-load-balancer-controller -o yaml
 # kubectl -n kube-system get svc aws-load-balancer-webhook-service -o yaml
 
+
 ###########################################################################
 # External DNS Controller Install
 ###########################################################################
-
 resource "aws_iam_policy" "externaldns_iam_policy" {
   name        = "${local.name}-AllowExternalDNSUpdates"
   path        = "/"
@@ -180,3 +176,53 @@ module "eks_external_dns_controller" {
     module.eks_external_dns_controller_iam_role
   ]
 }
+
+
+###########################################################################
+# EFS CSI Controller Install
+###########################################################################
+data "http" "efs_csi_iam_policy" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/docs/iam-policy-example.json"
+
+  request_headers = {
+    Accept = "application/json"
+  }
+}
+
+resource "aws_iam_policy" "efs_csi_iam_policy" {
+  name        = "AmazonEKS_EFS_CSI_Driver_Policy"
+  path        = "/"
+  description = "EFS CSI IAM Policy"
+  policy      = data.http.efs_csi_iam_policy.body
+}
+
+module "eks_efs_csi_iam_iam_role" {
+  source                     = "./modules/terraform-aws-eks-irsa"
+  provider_arn               = module.eks.eks_oidc_provider.arn
+  role_name                  = "irsa-efs-role"
+  namespace_service_accounts = ["kube-system:efs-csi-controller-sa"]
+  role_policy_arns           = [aws_iam_policy.efs_csi_iam_policy.arn]
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+module "eks_efs_csi_controller" {
+  source                = "./modules/terraform-aws-eks-efs"
+  resource_name_prefix  = local.name
+  aws_region            = var.aws_region
+  vpc_id                = var.vpc_id
+  efs_subnet_ids        = var.nodegroup_private_subnet_ids
+  allowed_inbound_cidrs = var.vpc_cidr_block
+  service_account_name  = "efs-csi-controller-sa"
+  efs_csi_role_arn      = module.eks_efs_csi_iam_iam_role.iam_role_arn
+
+
+  depends_on = [
+    module.eks_efs_csi_iam_iam_role
+  ]
+}
+
+# aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+# kubectl get pod -n kube-system -l "app.kubernetes.io/name=aws-efs-csi-driver,app.kubernetes.io/instance=aws-efs-csi-driver"

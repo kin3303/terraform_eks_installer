@@ -1,0 +1,68 @@
+###########################################################################
+# IRSA Module Test 
+###########################################################################
+locals {
+  oidc_provider_arn = data.terraform_remote_state.eks.outputs.eks_oidc_provider.arn
+  cluster_id        = data.terraform_remote_state.eks.outputs.eks_cluster.cluster_id
+}
+
+module "eks_s3_readonly_role" {
+  source                     = "../eks/modules/terraform-aws-eks-irsa"
+  provider_arn               = local.oidc_provider_arn
+  role_name                  = "irsa-s3-readonly-role"
+  namespace_service_accounts = ["default:s3-readonly-sa"]
+  role_policy_arns           = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
+}
+
+resource "kubernetes_service_account_v1" "s3_readonly_sa" {
+  metadata {
+    name = var.sa_s3_readonly
+
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.eks_s3_readonly_role.iam_role_arn # aws_iam_role.irsa_s3_read_only_role.arn 
+    }
+  }
+}
+
+resource "kubernetes_job_v1" "irsa_test" {
+  metadata {
+    name = "irsa-test"
+
+    labels = {
+      app = "irsa-test"
+    }
+  }
+
+  spec {
+    template {
+      metadata {
+        labels = {
+          app = "irsa-test"
+        }
+      }
+
+      spec {
+        container {
+          name    = "irsa-test"
+          image   = "amazon/aws-cli:latest"
+          command = ["aws", "s3", "ls"]
+        }
+
+        restart_policy       = "Never"
+        service_account_name = "s3-readonly-sa"
+      }
+    }
+  }
+}
+
+# terraform init
+# terraform apply --auto-approve
+# aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+# kubectl get sa
+# kubectl get job
+# kubectl describe job irsa-test
+# kubectl logs -f -l app=irsa-test  --max-log-requests=100
+# terraform state list
+#   terraform taint kubernetes_job_v1.irsa_test
+#   terraform apply --auto-approve
+# terraform apply -replace kubernetes_job_v1.irsa_test

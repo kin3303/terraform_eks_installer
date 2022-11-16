@@ -1,0 +1,93 @@
+###########################################################################
+# NLB Test
+#    https://aws.amazon.com/elasticloadbalancing/features/
+#    AWS Cloud Provider Load Balancer (Legacy)
+#       "service.beta.kubernetes.io/aws-load-balancer-type" = "nlb"
+#    AWS Load Balancer Controller (Latest v1.18.18+)
+#        "service.beta.kubernetes.io/aws-load-balancer-type" = "external"
+###########################################################################
+resource "kubernetes_deployment_v1" "nlbapp" {
+  metadata {
+    name = "nlbapp-deployment"
+    labels = {
+      app = "nlbapp"
+    }    
+  } 
+ 
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "nlbapp"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "nlbapp"
+        }
+      }
+
+      spec {
+        container {
+          image =  "nginx:latest"
+          name  = "nlbapp"
+          port {
+            container_port = 80
+          }
+          }
+        }
+      }
+    }
+}
+
+resource "kubernetes_service_v1" "myapp3_nlb_service" {
+  metadata {
+    name = "extdns-tls-lbc-network-lb"
+    annotations = {
+      # Traffic Routing
+      "service.beta.kubernetes.io/aws-load-balancer-name" = "extdns-tls-lbc-network-lb"
+      "service.beta.kubernetes.io/aws-load-balancer-type" = "external"
+      "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" = "instance" 
+
+      # Health Check Settings
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol" = "http"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-port" = "traffic-port"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-path" = "/index.html"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold" = 3
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold" = 3
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval" = 10 
+      
+      # Access Control
+      "service.beta.kubernetes.io/load-balancer-source-ranges" = "0.0.0.0/0" 
+      "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internet-facing" 
+
+      # TLS
+      "service.beta.kubernetes.io/aws-load-balancer-ssl-cert" = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4"
+      "service.beta.kubernetes.io/aws-load-balancer-ssl-ports" = "443" 
+      "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy" = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      "service.beta.kubernetes.io/aws-load-balancer-backend-protocol" = "tcp"
+
+      # External DNS - For creating a Record Set in Route53
+      "external-dns.alpha.kubernetes.io/hostname" = "nlb.idtplateer.com"
+    }        
+  }
+  spec {
+    selector = { 
+      app = kubernetes_deployment_v1.nlbapp.spec[0].selector[0].match_labels.app
+    }
+    port {
+      name        = "http"
+      port        = 80
+      target_port = 80
+    }
+    port {
+      name        = "https"
+      port        = 443
+      target_port = 80
+    }    
+    type = "LoadBalancer"
+  }
+}

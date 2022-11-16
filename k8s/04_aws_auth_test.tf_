@@ -1,0 +1,561 @@
+###########################################################################
+# k8s Auth aws-auth ConfigMap
+###########################################################################
+locals {
+  configmap_roles = [
+    {
+      rolearn  = aws_iam_role.eks_admin_role.arn
+      username = "eks-admin"
+      groups   = ["system:masters"]
+    },
+    {
+      rolearn  = aws_iam_role.eks_readonly_role.arn
+      username = "eks-readonly"
+      groups   = [kubernetes_cluster_role_binding_v1.eksreadonly_clusterrolebinding.subject[0].name] # "eks-readonly-group"
+    },
+    {
+      rolearn  = aws_iam_role.eks_developer_role.arn
+      username = "eks-developer"
+      groups   = [kubernetes_role_binding_v1.eksdeveloper_rolebinding.subject[0].name] # "eks-developer-group"
+    },
+  ]
+  configmap_users = [
+    {
+      userarn  = aws_iam_user.admin_user.arn
+      username = aws_iam_user.admin_user.name
+      groups   = ["system:masters"]
+    },
+    {
+      userarn  = aws_iam_user.basic_user.arn
+      username = aws_iam_user.basic_user.name
+      groups   = ["system:masters"]
+    },
+  ]
+}
+
+module "eks_auth_controller" {
+  source                      = "../eks/modules/terraform-aws-eks-auth"
+  manage_aws_auth_configmap   = true
+  create_aws_auth_configmap   = false
+  aws_auth_node_iam_role_arns = [data.terraform_remote_state.eks.outputs.eks_roles.nodegroup_role_arn]
+  aws_auth_roles              = local.configmap_roles
+  aws_auth_users              = local.configmap_users
+
+  depends_on = [
+    aws_iam_role.eks_admin_role,
+    aws_iam_role.eks_readonly_role,
+    aws_iam_role.eks_developer_role,
+    kubernetes_cluster_role_binding_v1.eksreadonly_clusterrolebinding,
+    kubernetes_cluster_role_binding_v1.eksdeveloper_clusterrolebinding,
+    kubernetes_role_binding_v1.eksdeveloper_rolebinding
+  ]
+}
+
+# k8s Auth - Test user auth
+resource "aws_iam_user" "admin_user" {
+  name          = "eksadmin1"
+  path          = "/"
+  force_destroy = true
+}
+
+resource "aws_iam_user" "basic_user" {
+  name          = "eksbasic1"
+  path          = "/"
+  force_destroy = true
+}
+
+
+resource "aws_iam_user_policy_attachment" "admin_user" {
+  user       = aws_iam_user.admin_user.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+resource "aws_iam_user_policy" "basic_user_eks_policy" {
+  name = "eks-full-access-policy"
+  user = aws_iam_user.basic_user.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "iam:ListRoles",
+          "eks:*",
+          "ssm:GetParameter"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+
+# terraform apply --auto-approve
+# aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+# kubectl -n kube-system get configmap aws-auth -o yaml
+# aws iam create-login-profile --user-name eksadmin1 --password "@EKSUser101" --no-password-reset-required
+# aws iam create-access-key --user-name eksadmin1
+# aws configure --profile eksadmin1 
+#      AWS Access Key ID [None]: <ACCESS KEY>
+#      AWS Secret Access Key [None]: <SECRET KEY>
+#      Default region name [None]: ap-northeast-2
+#      Default output format [None]: json
+# aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk --profile eksadmin1
+# cat $HOME/.kube/config
+# kubectl get nodes
+
+
+
+# k8s Auth - Test role auth
+
+# Role
+resource "aws_iam_role" "eks_admin_role" {
+  name = "eks-admin-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+      },
+    ]
+  })
+
+  inline_policy {
+    name = "eks-full-access-policy"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Action   = ["iam:ListRoles", "eks:*", "ssm:GetParameter"]
+          Effect   = "Allow"
+          Sid      = ""
+          Resource = "*"
+        },
+      ]
+    })
+  }
+}
+
+
+# User & Group
+resource "aws_iam_user" "eksadmin_guser" {
+  name          = "eksadmin-guser"
+  path          = "/"
+  force_destroy = true
+}
+
+resource "aws_iam_group" "eksadmin_iam_group" {
+  name = "eksadmins-group"
+  path = "/"
+
+  depends_on = [
+    aws_iam_role.eks_admin_role,
+  ]
+}
+
+resource "aws_iam_group_policy" "eksadmin_iam_group" {
+  name  = "eksadmins-group-policy"
+  group = aws_iam_group.eksadmin_iam_group.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "sts:AssumeRole",
+        ]
+        Sid      = "AllowAssumeOrganizationAccountRole"
+        Effect   = "Allow"
+        Resource = aws_iam_role.eks_admin_role.arn
+      },
+    ]
+  })
+}
+
+resource "aws_iam_group_membership" "eksadmins_membership" {
+  name = "eksadmin-group-membership"
+
+  users = [
+    aws_iam_user.eksadmin_guser.name,
+  ]
+
+  group = aws_iam_group.eksadmin_iam_group.name
+}
+
+# terraform import kubernetes_config_map_v1.aws_auth kube-system/aws-auth
+# terraform apply --auto-approve
+#
+# [Test in bastion]
+# Configure aws cli eksadmin-guser Profile 
+#    aws iam create-login-profile --user-name eksadmin-guser --password "@EKSUser101" --no-password-reset-required
+#    aws iam create-access-key --user-name eksadmin-guser
+#    aws configure --profile eksadmin-guser 
+#         AWS Access Key ID [None]: <ACCESS KEY>
+#         AWS Secret Access Key [None]: <SECRET KEY>
+#         Default region name [None]: ap-northeast-2
+#         Default output format [None]: json
+#    aws configure list
+#    export AWS_DEFAULT_PROFILE=eksadmin-guser
+#    aws sts get-caller-identity
+#
+# Export AWS Account ID
+#    ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+#    echo $ACCOUNT_ID
+#
+# Assume IAM Role (GUI 에서 eksadmin-guser 의 arn 조회후 아래 명령 수행)
+#    aws sts assume-role --role-arn "arn:aws:iam::${ACCOUNT_ID}:role/eks-admin-role" --role-session-name mytest
+#    export AWS_ACCESS_KEY_ID=RoleAccessKeyID 
+#    export AWS_SECRET_ACCESS_KEY=RoleSecretAccessKey
+#    export AWS_SESSION_TOKEN=RoleSessionToken
+#
+# Verify current user configured in aws cli
+#    aws sts get-caller-identity
+#
+# Configure kubeconfig for kubectl
+#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+#    cat $HOME/.kube/config
+#    kubectl get nodes
+#
+# Switch to default profile
+#    unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+#    export AWS_DEFAULT_PROFILE=default
+#    aws sts get-caller-identity
+#
+# Login as eksadmin-guser user AWS Mgmt Console and Switch Roles
+#    Login to AWS Mgmt Console
+#    Username: eksadmin-guser
+#    Password: @EKSUser101
+#    Go to EKS Servie 
+#    Click on Switch Role
+#        Account: eksadmin-guser
+#        Role: eks-admin-role
+#        Display Name: eksadmin-session201
+#        Select Color: any color
+#        Access EKS Cluster -> hr-dev-eksdemo1
+#           Overview Tab
+#           Workloads Tab
+#           Configuration Tab
+
+
+
+# k8s Auth - Test role auth (readonly)
+
+resource "aws_iam_role" "eks_readonly_role" {
+  name = "eks-readonly-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+      },
+    ]
+  })
+
+  # https://docs.aws.amazon.com/eks/latest/userguide/view-kubernetes-resources.html
+  inline_policy {
+    name = "eks-readonly-access-policy"
+
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Action = [
+            "iam:ListRoles",
+            "ssm:GetParameter",
+            "eks:DescribeNodegroup",
+            "eks:ListNodegroups",
+            "eks:DescribeCluster",
+            "eks:ListClusters",
+            "eks:AccessKubernetesApi",
+            "eks:ListUpdates",
+            "eks:ListFargateProfiles",
+            "eks:ListIdentityProviderConfigs",
+            "eks:ListAddons",
+            "eks:DescribeAddonVersions"
+          ]
+          Effect   = "Allow"
+          Resource = "*"
+        },
+      ]
+    })
+  }
+
+  tags = {
+    tag-key = "eks-readonly-role"
+  }
+}
+
+
+# User & Group
+resource "aws_iam_user" "eksreadonly_guser" {
+  name          = "eksreadonly-guser"
+  path          = "/"
+  force_destroy = true
+}
+
+
+resource "aws_iam_group" "eksreadonly_iam_group" {
+  name = "eksreadonly-group"
+  path = "/"
+
+  depends_on = [
+    aws_iam_role.eks_readonly_role,
+  ]
+}
+
+resource "aws_iam_group_policy" "eksreadonly_iam_group" {
+  name  = "eksreadonly-group-policy"
+  group = aws_iam_group.eksreadonly_iam_group.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "sts:AssumeRole",
+        ]
+        Sid      = "AllowAssumeOrganizationAccountRole"
+        Effect   = "Allow"
+        Resource = aws_iam_role.eks_readonly_role.arn
+      },
+    ]
+  })
+}
+
+
+# Group Membership
+resource "aws_iam_group_membership" "eksreadonly_membership" {
+  name = "eksreadonly-group-membership"
+
+  users = [
+    aws_iam_user.eksreadonly_guser.name,
+  ]
+
+  group = aws_iam_group.eksreadonly_iam_group.name
+}
+
+# Cluster Role & Cluster Role Binding
+resource "kubernetes_cluster_role_v1" "eksreadonly_clusterrole" {
+  metadata {
+    name = "eksreadonly-clusterrole"
+  }
+
+  rule {
+    api_groups = [""] # core APIs 
+    resources  = ["nodes", "namespaces", "pods", "events", "services", "configmaps"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = ["apps"]
+    resources  = ["deployments", "daemonsets", "statefulsets", "replicasets"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs"]
+    verbs      = ["get", "list"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding_v1" "eksreadonly_clusterrolebinding" {
+  metadata {
+    name = "eksreadonly-clusterrolebinding"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role_v1.eksreadonly_clusterrole.metadata.0.name
+  }
+  subject {
+    kind      = "Group"
+    name      = "eks-readonly-group"
+    api_group = "rbac.authorization.k8s.io"
+  }
+}
+
+# Check ConfigMap
+#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+#    cat $HOME/.kube/config
+#    kubectl -n kube-system get configmap aws-auth -o yaml
+
+
+# k8s Auth - Test role auth (developer)
+
+resource "aws_iam_role" "eks_developer_role" {
+  name = "eks-developer-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+      },
+    ]
+  })
+  inline_policy {
+    name = "eks-developer-access-policy"
+
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Action = [
+            "iam:ListRoles",
+            "ssm:GetParameter",
+            "eks:DescribeNodegroup",
+            "eks:ListNodegroups",
+            "eks:DescribeCluster",
+            "eks:ListClusters",
+            "eks:AccessKubernetesApi",
+            "eks:ListUpdates",
+            "eks:ListFargateProfiles",
+            "eks:ListIdentityProviderConfigs",
+            "eks:ListAddons",
+            "eks:DescribeAddonVersions"
+          ]
+          Effect   = "Allow"
+          Resource = "*"
+        },
+      ]
+    })
+  }
+}
+
+resource "aws_iam_user" "eksdeveloper_user" {
+  name          = "eksdeveloper"
+  path          = "/"
+  force_destroy = true
+}
+
+resource "aws_iam_group" "eksdeveloper_iam_group" {
+  name = "eksdeveloper"
+  path = "/"
+}
+
+resource "aws_iam_group_policy" "eksdeveloper_iam_group" {
+  name  = "eksdeveloper-group-policy"
+  group = aws_iam_group.eksdeveloper_iam_group.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "sts:AssumeRole",
+        ]
+        Effect   = "Allow"
+        Sid      = "AllowAssumeOrganizationAccountRole"
+        Resource = "${aws_iam_role.eks_developer_role.arn}"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_group_membership" "eksdeveloper" {
+  name = "eksdeveloper-group-membership"
+  users = [
+    aws_iam_user.eksdeveloper_user.name
+  ]
+  group = aws_iam_group.eksdeveloper_iam_group.name
+}
+
+
+resource "kubernetes_cluster_role_v1" "eksdeveloper_clusterrole" {
+  metadata {
+    name = "eksdeveloper-clusterrole"
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["nodes", "namespaces", "pods", "events", "services", "configmaps", "serviceaccounts"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = ["apps"]
+    resources  = ["deployments", "daemonsets", "statefulsets", "replicasets"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs"]
+    verbs      = ["get", "list"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding_v1" "eksdeveloper_clusterrolebinding" {
+  metadata {
+    name = "eksdeveloper-clusterrolebinding"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role_v1.eksdeveloper_clusterrole.metadata.0.name
+  }
+  subject {
+    kind      = "Group"
+    name      = "eks-developer-group"
+    api_group = "rbac.authorization.k8s.io"
+  }
+}
+
+resource "kubernetes_namespace_v1" "k8s_dev" {
+  metadata {
+    name = "dev"
+  }
+}
+
+resource "kubernetes_role_v1" "eksdeveloper_role" {
+  metadata {
+    name      = "eksdeveloper-role"
+  }
+
+  rule {
+    api_groups = ["", "extensions", "apps"]
+    resources  = ["*"]
+    verbs      = ["*"]
+  }
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs", "cronjobs"]
+    verbs      = ["*"]
+  }
+}
+
+resource "kubernetes_role_binding_v1" "eksdeveloper_rolebinding" {
+  metadata {
+    name      = "eksdeveloper-rolebinding"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role_v1.eksdeveloper_role.metadata.0.name
+  }
+  subject {
+    kind      = "Group"
+    name      = "eks-developer-group"
+    api_group = "rbac.authorization.k8s.io"
+  }
+}
+
+# Check ConfigMap
+#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+#    cat $HOME/.kube/config
+#    kubectl -n kube-system get configmap aws-auth -o yaml

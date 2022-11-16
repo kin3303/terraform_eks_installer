@@ -25,12 +25,6 @@ variable "alb_controller_role_arn" {
   type        = string
 }
 
-variable "image_registry" {
-  description =  "Amazon container image registry by region (https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html)"
-  type        = string
-  default     = "602401143452.dkr.ecr.ap-northeast-2.amazonaws.com/amazon/aws-load-balancer-controller"
-}
-
 variable "service_account_namespace" {
   description =  "(Required) Namespace of the service account to which IRSA is applied"
   type        = string

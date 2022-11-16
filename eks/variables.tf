@@ -20,6 +20,18 @@ variable "business_divsion" {
 
 }
 
+variable "vpc_cidr_block" {
+  type        = string
+  description = "(Required) VPC CIDR Block" 
+}
+
+variable "vpc_id" {
+  type        = string
+  description = "(Required) VPC ID" 
+}
+
+
+
 ################################################################################################
 # Cluster
 ################################################################################################
