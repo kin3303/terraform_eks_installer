@@ -28,7 +28,4 @@ resource "kubernetes_namespace" "lbtest" {
 terraform init
 terraform apply --auto-approve
 aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
-kubectl get all -n lbtest
-terraform destroy --auto-approve
-kubectl get all -n lbtest
 ```
