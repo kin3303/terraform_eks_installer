@@ -71,7 +71,7 @@ module "eks_alb_controller" {
   resource_name_prefix = local.name
   cluster_name         = module.eks.eks_cluster.cluster_id
   provider_arn         = module.eks.eks_oidc_provider.arn
-  aws_region           = var.aws_region  
+  aws_region           = var.aws_region
   vpc_id               = "vpc-0528a219b39f1c6f3"
 
   depends_on = [
@@ -100,7 +100,7 @@ module "eks_efs_csi_controller" {
   resource_name_prefix  = local.name
   aws_region            = var.aws_region
   vpc_id                = var.vpc_id
-  provider_arn          = module.eks.eks_oidc_provider.arn  
+  provider_arn          = module.eks.eks_oidc_provider.arn
   efs_subnet_ids        = var.nodegroup_private_subnet_ids
   allowed_inbound_cidrs = var.vpc_cidr_block
 
@@ -115,9 +115,21 @@ module "eks_efs_csi_controller" {
 module "eks_cluster_autoscaler" {
   source               = "./modules/terraform-aws-eks-cluster-autoscaler"
   resource_name_prefix = local.name
-  aws_region           = var.aws_region  
+  aws_region           = var.aws_region
   cluster_name         = module.eks.eks_cluster.cluster_id
   provider_arn         = module.eks.eks_oidc_provider.arn
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+###########################################################################
+# Pod Autoscaler Install
+###########################################################################
+module "eks_pod_autoscaler" {
+  source               = "./modules/terraform-aws-eks-pod-scaler"
+  resource_name_prefix = local.name
 
   depends_on = [
     module.eks
