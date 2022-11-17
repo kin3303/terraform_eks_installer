@@ -69,10 +69,10 @@ module "eks_ebs_csi_addon" {
 module "eks_alb_controller" {
   source               = "./modules/terraform-aws-eks-alb"
   resource_name_prefix = local.name
-  provider_arn         = module.eks.eks_oidc_provider.arn
-  vpc_id               = "vpc-0528a219b39f1c6f3"
-  aws_region           = var.aws_region
   cluster_name         = module.eks.eks_cluster.cluster_id
+  provider_arn         = module.eks.eks_oidc_provider.arn
+  aws_region           = var.aws_region  
+  vpc_id               = "vpc-0528a219b39f1c6f3"
 
   depends_on = [
     module.eks
@@ -100,10 +100,9 @@ module "eks_efs_csi_controller" {
   resource_name_prefix  = local.name
   aws_region            = var.aws_region
   vpc_id                = var.vpc_id
+  provider_arn          = module.eks.eks_oidc_provider.arn  
   efs_subnet_ids        = var.nodegroup_private_subnet_ids
   allowed_inbound_cidrs = var.vpc_cidr_block
-  service_account_name  = "efs-csi-controller-sa"
-  provider_arn          = module.eks.eks_oidc_provider.arn
 
   depends_on = [
     module.eks
@@ -116,10 +115,9 @@ module "eks_efs_csi_controller" {
 module "eks_cluster_autoscaler" {
   source               = "./modules/terraform-aws-eks-cluster-autoscaler"
   resource_name_prefix = local.name
+  aws_region           = var.aws_region  
   cluster_name         = module.eks.eks_cluster.cluster_id
   provider_arn         = module.eks.eks_oidc_provider.arn
-  aws_region           = var.aws_region
-  service_account_name = "cluster-autoscaler"
 
   depends_on = [
     module.eks

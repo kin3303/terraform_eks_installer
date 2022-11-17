@@ -22,7 +22,7 @@ resource "helm_release" "efs_controller" {
 
   set {
     name  = "serviceAccount.name"
-    value = var.service_account_name
+    value = "efs-csi-controller-sa"
   }
 
   set {

@@ -8,11 +8,6 @@ variable "aws_region" {
   description = "(Required) AWS Region to use"
 }
 
-variable "service_account_name" {
-  description = "(Required) Name of the service account to which IRSA is applied"
-  type        = string
-}
-
 variable "resource_name_prefix" {
   type        = string
   description = "(Required) String value for friendly name prefix for AWS resource names."

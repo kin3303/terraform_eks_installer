@@ -47,14 +47,14 @@ resource "helm_release" "cluster_autoscaler_release" {
 
   set {
     name  = "rbac.serviceAccount.name"
-    value = var.service_account_name
+    value = "cluster-autoscaler"
   }
 
   set {
     name  = "rbac.serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
     value = module.eks_cluster_autoscaler_iam_role.iam_role_arn
   }
-  
+
   depends_on = [
     module.eks_cluster_autoscaler_iam_role
   ]

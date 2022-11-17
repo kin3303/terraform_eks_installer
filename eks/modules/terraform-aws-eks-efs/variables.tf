@@ -13,11 +13,6 @@ variable "resource_name_prefix" {
   description = "(Required) Resource name prefix used for tagging and naming AWS resources"
 }
 
-variable "service_account_name" {
-  description =  "(Required) Name of the service account to which IRSA is applied"
-  type        = string
-}
-
 variable "efs_subnet_ids" {
   type        = list(string)
   description = "(Required) The subnet IDs in which the EFS will have a mount."
