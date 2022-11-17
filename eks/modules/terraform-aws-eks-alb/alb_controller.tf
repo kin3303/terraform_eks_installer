@@ -10,7 +10,7 @@ resource "helm_release" "loadbalancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
-  namespace  = var.service_account_namespace
+  namespace  = "kube-system"
 
   # Region 에 따라 Repository URL 변경 : https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
   set {
@@ -26,7 +26,7 @@ resource "helm_release" "loadbalancer_controller" {
   # Service Account 는 lbc_iam_role 에 설정한 system:serviceaccount:kube-system:aws-load-balancer-controller 이름을 가져야 함
   set {
     name  = "serviceAccount.name"
-    value = var.service_account_name
+    value = "aws-load-balancer-controller"
   }
 
   /*
@@ -39,7 +39,7 @@ resource "helm_release" "loadbalancer_controller" {
   */
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = var.alb_controller_role_arn
+    value =  module.eks_alb_controller_iam_role.iam_role_arn
   }
 
   set {
@@ -55,5 +55,9 @@ resource "helm_release" "loadbalancer_controller" {
   set {
     name  = "clusterName"
     value = var.cluster_name
-  } 
+  }
+
+  depends_on = [
+    module.eks_alb_controller_iam_role
+  ]  
 }

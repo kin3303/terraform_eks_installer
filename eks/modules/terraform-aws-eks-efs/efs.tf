@@ -7,7 +7,7 @@ resource "helm_release" "efs_controller" {
 
   name       = "aws-efs-csi-driver"
   repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver"
-  chart      =  "aws-efs-csi-driver"
+  chart      = "aws-efs-csi-driver"
   namespace  = "kube-system"
 
   set {
@@ -19,7 +19,7 @@ resource "helm_release" "efs_controller" {
     name  = "serviceAccount.create"
     value = "true"
   }
- 
+
   set {
     name  = "serviceAccount.name"
     value = var.service_account_name
@@ -27,8 +27,12 @@ resource "helm_release" "efs_controller" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = var.efs_csi_role_arn
+    value = module.eks_efs_csi_iam_iam_role.iam_role_arn
   }
+
+  depends_on = [
+    module.eks_efs_csi_iam_iam_role
+  ]
 }
 
 ###########################################################################
@@ -38,7 +42,7 @@ locals {
   security_group = {
     efs = {
       name        = "${var.resource_name_prefix}-efs-allow-nfs-from-eks-vpc"
-      description =  "Allow Inbound NFS Traffic from EKS VPC CIDR"
+      description = "Allow Inbound NFS Traffic from EKS VPC CIDR"
       ingress = {
         nfs = {
           from        = 2049
@@ -92,9 +96,9 @@ resource "aws_security_group" "efs_sg" {
 
 # EFS File System
 resource "aws_efs_file_system" "efs_file_system" {
-  creation_token = "${var.resource_name_prefix}-efs"
-  encrypted                       =  var.encrypted != true && var.kms_key_id != null ? true : false
-  kms_key_id                      =  var.encrypted != true && var.kms_key_id != null ? var.kms_key_id : null
+  creation_token                  = "${var.resource_name_prefix}-efs"
+  encrypted                       = var.encrypted != true && var.kms_key_id != null ? true : false
+  kms_key_id                      = var.encrypted != true && var.kms_key_id != null ? var.kms_key_id : null
   performance_mode                = var.performance_mode
   provisioned_throughput_in_mibps = var.performance_mode == "provisioned" ? var.provisioned_throughput_in_mibps : null
   throughput_mode                 = var.throughput_mode
@@ -115,7 +119,7 @@ resource "aws_efs_file_system" "efs_file_system" {
   }
 
   tags = {
-    Name =  "${var.resource_name_prefix}-efs"
+    Name = "${var.resource_name_prefix}-efs"
   }
 }
 
@@ -133,5 +137,5 @@ resource "aws_efs_mount_target" "efs_mount_target" {
 
   file_system_id  = aws_efs_file_system.efs_file_system.id
   subnet_id       = each.value
-  security_groups = [aws_security_group.efs_sg["efs"].id] 
+  security_groups = [aws_security_group.efs_sg["efs"].id]
 }

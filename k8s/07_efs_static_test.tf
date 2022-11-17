@@ -44,6 +44,7 @@ resource "kubernetes_persistent_volume_claim_v1" "efs_pvc" {
   }
 }
 
+/*
 resource "kubernetes_pod_v1" "efs_write_app_pod" {
   metadata {
     name = "efs-write-app"
@@ -66,16 +67,35 @@ resource "kubernetes_pod_v1" "efs_write_app_pod" {
       }
     }
   }
+}
+*/
+
+resource "kubernetes_pod_v1" "efs_write_app_pod" {
+  metadata {
+    name = "efs-write-app"
+  }
+  spec {
+    container {
+      name    = "efs-write-app"
+      image   = "centos"
+      command = ["/bin/sh"]
+      args    = ["-c", "while true; do echo $(date -u) >> /data/efs-static.txt; sleep 5; done"]
+      volume_mount {
+        name       = "persistent-storage"
+        mount_path = "/data"
+      }
+    }
+    volume {
+      name = "persistent-storage"
+      persistent_volume_claim {
+        claim_name = kubernetes_persistent_volume_claim_v1.efs_pvc.metadata[0].name
+      }
+    }
+  }
 } 
+
 
 # Check EFS Static Provisioning
 #    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
 #    kubectl exec --stdin --tty efs-write-app  -- /bin/sh
-#    cd /data
-#    ls
-#    tail -f efs-static.txt
-
-
-###########################################################################
-# EFS Test (Dynamic Provisioning)
-###########################################################################
+#    tail -f /data/efs-static.txt

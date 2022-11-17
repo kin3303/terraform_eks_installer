@@ -18,11 +18,6 @@ variable "service_account_name" {
   type        = string
 }
 
-variable "efs_csi_role_arn" {
-  description =  "(Required) EFS CSI controller role arn"
-  type        = string
-}
-
 variable "efs_subnet_ids" {
   type        = list(string)
   description = "(Required) The subnet IDs in which the EFS will have a mount."
@@ -80,6 +75,11 @@ variable "transition_to_primary_storage_class" {
     )
     error_message = "Var `transition_to_primary_storage_class` must either be empty list or \"AFTER_1_ACCESS\"."
   }
+}
+
+variable "provider_arn" {
+  description = "k8s provider arn"
+  type        = string
 }
 
 

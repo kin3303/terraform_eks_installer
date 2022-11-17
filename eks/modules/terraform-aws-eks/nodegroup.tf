@@ -47,6 +47,9 @@ resource "aws_eks_node_group" "eks_ng_public" {
 
   tags = {
     Name = "${var.resource_name_prefix}-eks-public-node-group"
+    # Cluster Autosacler Tag
+    "k8s.io/cluster-autoscaler/${aws_eks_cluster.eks_cluster.name}" = "owned"
+    "k8s.io/cluster-autoscaler/enabled" = true    
   }
 }
 
@@ -74,7 +77,7 @@ resource "aws_eks_node_group" "eks_ng_private" {
   scaling_config {
     desired_size = 1
     min_size     = 1
-    max_size     = 2
+    max_size     = 3
   }
 
   update_config {
@@ -94,5 +97,8 @@ resource "aws_eks_node_group" "eks_ng_private" {
 
   tags = {
     Name = "${var.resource_name_prefix}-eks-private-node-group"
+    # Cluster Autosacler Tag
+    "k8s.io/cluster-autoscaler/${aws_eks_cluster.eks_cluster.name}" = "owned"
+    "k8s.io/cluster-autoscaler/enabled" = true
   }
 }
