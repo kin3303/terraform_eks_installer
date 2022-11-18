@@ -135,3 +135,21 @@ module "eks_pod_autoscaler" {
     module.eks
   ]
 }
+
+###########################################################################
+# Logging
+#   모듈화 하면 동작하지 않는 이슈가 있고 개선되지 않고 있는듯..
+#   https://github.com/gavinbunney/terraform-provider-kubectl/issues/61
+#   임시 조치로 monitoring.tf 로 설치
+###########################################################################
+/*
+module "eks_logging" {
+  source       = "./modules/terraform-aws-eks-logging"
+  aws_region   = var.aws_region
+  cluster_name = module.eks.eks_cluster.cluster_id
+
+  depends_on = [
+    module.eks
+  ]
+}
+*/

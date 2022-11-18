@@ -1,13 +1,15 @@
 terraform {
+  required_version = ">= 0.13"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.0"
+      version = "~> 4.14"
     }
 
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.7"
+      version = "~> 2.11"
     }
 
     helm = {
@@ -17,9 +19,13 @@ terraform {
 
     http = {
       source = "hashicorp/http"
-      #version = "2.1.0"
       version = "~> 2.1"
     }
+
+    kubectl = {
+      source = "gavinbunney/kubectl"
+      version = "1.14.0"
+    }      
   }
 }
 
@@ -42,4 +48,11 @@ provider "helm" {
 }
 
 provider "http" {
+}
+
+provider "kubectl" {
+  host                   = module.eks.kubeconfig.host
+  cluster_ca_certificate = module.eks.kubeconfig.cluster_ca_certificate
+  token                  = module.eks.kubeconfig.token
+  load_config_file       = false
 }
