@@ -1,6 +1,7 @@
 ###########################################################################
 # External DNS Controller Install
 #     https://github.com/kubernetes-sigs/external-dns/tree/master/charts/external-dns
+#     https://github.com/kubernetes-sigs/external-dns/blob/master/charts/external-dns/values.yaml
 ###########################################################################
 resource "helm_release" "external_dns" {
   name       = "external-dns"

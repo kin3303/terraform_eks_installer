@@ -1,0 +1,260 @@
+# Available parameters and their default values for the Consul chart.
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-global
+global:
+  enabled: true
+  logLevel: "info"
+  logJSON: ${log_json_enable}
+  name: ${name}
+  domain: ${consul_domain}
+  image: ${image}
+  imagePullSecrets: []
+  imageK8S: ${image_k8s}
+  datacenter: ${datacenter}
+  enablePodSecurityPolicies:  ${pod_security_policy_enable}
+  gossipEncryption:
+    autoGenerate:   ${gossip_enable_auto_generate}
+    secretName: ${gossip_secret}
+    secretKey: ${gossip_key}
+  recursors: ${consul_recursors}
+  tls:
+    enabled:  ${tls_enabled}
+    enableAutoEncrypt: ${tls_enable_auto_encrypt}
+    serverAdditionalDNSSANs: ${tls_server_additional_dns_sans}
+    serverAdditionalIPSANs: ${tls_server_additional_ip_sans}
+    verify: ${tls_verify}
+    httpsOnly: ${tls_https_only}
+    caCert:
+      secretName: ${tls_cacert_secret_name}
+      secretKey: ${tls_cacert_secret_key}
+    caKey:
+      secretName: ${tls_cakey_secret_name}
+      secretKey: ${tls_cakey_secret_key}
+  acls:
+    manageSystemACLs: ${manage_system_acls}
+    bootstrapToken:
+      ${indent(6, acl_bootstrap_token)}
+    createReplicationToken: ${create_replication_token}
+    replicationToken:
+      ${indent(6, replication_token)}
+    tolerations: ${acl_tolerations}
+  federation:
+    enabled: false
+    createFederationSecret: false
+    primaryDatacenter: null
+    primaryGateways: []
+    k8sAuthMethodHost: null
+  metrics:
+    enabled: ${metrics_enabled}
+    enableAgentMetrics: ${enable_agent_metrics}
+    agentMetricsRetentionTime: ${agent_metrics_retention_time}
+    enableGatewayMetrics:  ${enable_gateway_metrics}
+  imageConsulDataplane: ${image_dataplane}
+  consulAPITimeout: 5s
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-server
+server:
+  enabled: "-"
+  image: null
+  replicas: ${server_replicas}
+  bootstrapExpect: null
+  serverCert:
+    secretName: ${tls_server_cert_secret}
+  exposeGossipAndRPCPorts: false
+  ports:
+    serflan:
+      port: 8301
+  storage: ${server_storage}
+  storageClass: ${server_storage_class}
+  connect: ${connect_enable}
+  serviceAccount:
+    annotations: ${server_service_account_annotations}
+  resources:
+    ${indent(4, server_resources)}
+  securityContext:  ${server_security_context}
+  containerSecurityContext:
+    server: null
+  updatePartition: ${server_update_partition}
+  disruptionBudget:
+    enabled: true
+    maxUnavailable: null
+  extraConfig: ${server_extra_config}
+  extraVolumes: ${server_extra_volumes}
+  extraContainers: []  
+  affinity: ${server_affinity}
+  tolerations: ${server_tolerations}
+  topologySpreadConstraints: ${server_topology_spread_constraints}
+  priorityClassName:  ${server_priority_class}
+  annotations: ${server_annotations}
+  exposeService:
+    enabled: "-"
+    type: LoadBalancer
+    nodePort:
+      http: null
+      https: null
+      serf: null
+      rpc: null
+      grpc: null
+    annotations: null
+  service:
+    annotations: null
+  extraEnvironmentVars: {}
+
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-client
+client:
+  enabled: "-"
+  image: null
+  join: null
+  dataDirectoryHostPath: null
+  grpc: ${client_grpc}
+  nodeMeta:
+    pod-name: $${HOSTNAME}
+    host-ip: $${HOST_IP}
+  exposeGossipPorts: false
+  serviceAccount:
+    annotations:  ${client_service_account_annotations}
+  resources:
+    ${indent(4, client_resources)}
+  securityContext: ${client_security_context}
+  containerSecurityContext:
+    client: null
+    aclInit: null
+    tlsInit: null
+  extraConfig:  ${client_extra_config} 
+  extraVolumes: ${client_extra_volumes}
+  extraContainers: []
+  tolerations:  ${client_tolerations}
+  affinity: ${client_affinity}
+  priorityClassName: ${client_priority_class}
+  annotations: ${client_annotations}
+  extraLabels:  ${client_labels}
+  extraEnvironmentVars: {}
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-dns
+dns:
+  enabled: "-"
+  enableRedirection: "-"
+  type: ClusterIP
+  clusterIP: null
+  annotations: null
+  additionalSpec: null
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-ui
+ui:
+  enabled:  "-"
+  service:
+    enabled: true
+    type:  ${ui_service_type}
+    port:
+      http: 80
+      https: 443
+    nodePort:
+      http: null
+      https: null
+    annotations:  ${ui_annotations}
+    additionalSpec: ${ui_additional_spec}
+  ingress:
+    enabled: false
+    ingressClassName: ""
+    pathType: Prefix
+    hosts: []
+    tls: []
+    annotations: null
+  metrics:
+    enabled: "-"
+    provider: ${ui_metrics_provider}
+    baseURL:  ${ui_metrics_base_url}
+  dashboardURLTemplates:
+    service: ""
+
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-synccatalog
+syncCatalog:
+  enabled:  ${enable_sync_catalog}
+  image: null
+  default: ${sync_by_default}
+  priorityClassName: "${sync_priority_class}"
+  toConsul:  ${sync_to_consul}
+  toK8S: ${sync_to_k8s}
+  k8sPrefix:  ${sync_k8s_prefix}
+  k8sAllowNamespaces: [ "*" ]
+  k8sDenyNamespaces: [ "kube-system", "kube-public" ]
+  k8sSourceNamespace: null
+  addK8SNamespaceSuffix: ${sync_add_k8s_namespace_suffix}
+  consulPrefix: null
+  k8sTag: ${sync_k8s_tag}
+  consulNodeName: "k8s-sync"
+  syncClusterIPServices: ${sync_cluster_ip_services}
+  nodePortSyncType: ${sync_node_port_type}
+  aclSyncToken:
+    ${indent(4, sync_acl_token)}
+  affinity: ${sync_affinity}
+  tolerations: ${sync_tolerations}
+  serviceAccount:
+    annotations:  ${sync_service_account_annotations}
+  resources:
+    ${indent(4, sync_resources)}
+  logLevel: "info"
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-connectinject
+connectInject:
+  enabled: ${enable_connect_inject}
+  replicas: ${connect_inject_replicas}
+  image: null
+  default: ${connect_inject_by_default}
+  transparentProxy:
+    defaultEnabled:  ${transparent_proxy_default_enabled}
+    defaultOverwriteProbes:  ${transparent_proxy_default_overwrite_probes}
+  disruptionBudget:
+    enabled: true
+    maxUnavailable: null
+    minAvailable: null
+  consulNode:
+    meta: null
+  metrics:
+    defaultEnabled: "-"
+    defaultEnableMerging: ${connect_inject_default_enable_merging}
+    defaultMergedMetricsPort: ${connect_inject_default_merged_metrics_port}
+    defaultPrometheusScrapePort: ${connect_inject_default_prometheus_scrape_port}
+    defaultPrometheusScrapePath: ${connect_inject_default_prometheus_scrape_path}
+  envoyExtraArgs: ${envoy_extra_args}
+  priorityClassName: "${connect_inject_priority_class}"
+  serviceAccount:
+    annotations:  ${connect_inject_service_account_annotations}
+  resources: ${connect_inject_resources}
+  failurePolicy: ${connect_inject_failure_policy}
+  namespaceSelector:  ${connect_inject_namespace_selector} 
+  k8sAllowNamespaces: ${connect_inject_allowed_namespaces}
+  k8sDenyNamespaces: ${connect_inject_denied_namespaces}
+  affinity: ${connect_inject_affinity}
+  tolerations: ${connect_inject_tolerations}
+  aclBindingRuleSelector: ${connect_inject_acl_binding_rule_selector}
+  overrideAuthMethodName: ${connect_inject_override_auth_method_name}
+  sidecarProxy:
+    concurrency: 2
+    resources:
+      ${indent(6, connect_inject_sidecar_proxy_resources)}
+  initContainer:
+    ${indent(4, connect_inject_init_resources)}
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-terminatinggateways
+terminatingGateways:
+  enabled:  ${terminating_gateway_enable}
+  defaults:
+    ${indent(4, terminating_gateway_defaults)} 
+  gateways:
+    ${indent(4, terminating_gateways)}
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-webhookcertmanager
+webhookCertManager:
+  tolerations: null
+  nodeSelector: null
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-prometheus
+prometheus:
+  enabled: false
+
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-tests
+tests:
+  enabled: true
