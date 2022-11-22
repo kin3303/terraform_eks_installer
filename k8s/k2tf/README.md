@@ -12,3 +12,9 @@ resource "kubernetes_namespace" "lbtest" {
   }
 }
 ```
+
+Online
+
+```
+https://www.javainuse.com/yaml2tcf
+```

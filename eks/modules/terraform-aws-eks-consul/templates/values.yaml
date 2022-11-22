@@ -246,6 +246,14 @@ terminatingGateways:
   gateways:
     ${indent(4, terminating_gateways)}
 
+# https://developer.hashicorp.com/consul/docs/k8s/helm#h-ingressgateways
+ingressGateways:
+  enabled: ${ingress_gateway_enable}
+  defaults:
+    ${indent(4, ingress_gateway_defaults)} 
+  gateways:
+    ${indent(4, ingress_gateways)}
+
 # https://developer.hashicorp.com/consul/docs/k8s/helm#h-webhookcertmanager
 webhookCertManager:
   tolerations: null

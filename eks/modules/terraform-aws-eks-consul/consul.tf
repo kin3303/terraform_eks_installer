@@ -7,6 +7,7 @@
 #
 #     https://registry.terraform.io/modules/basisai/consul/kubernetes/latest
 #     https://www.linkedin.com/pulse/how-easily-setup-consul-service-mesh-aws-eks-ihar-vauchok
+#     https://github.com/kschoche/traefik-consul
 ###########################################################################
 resource "helm_release" "consul" {
   name       = var.release_name
@@ -93,13 +94,11 @@ locals {
     tls_verify                     = var.tls_verify
     tls_https_only                 = var.tls_https_only
     tls_enable_auto_encrypt        = jsonencode(var.tls_enable_auto_encrypt)
-
-    tls_cacert_secret_name = var.tls_ca_cert != null && var.tls_ca_cert_key != null ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
-    tls_cacert_secret_key  = var.tls_ca_cert != null && var.tls_ca_cert_key != null ? "tls.crt" : "null"
-    tls_cakey_secret_name  = var.tls_ca_cert != null && var.tls_ca_cert_key != null ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
-    tls_cakey_secret_key   = var.tls_ca_cert != null && var.tls_ca_cert_key != null ? "tls.key" : "null"
-
-    tls_server_cert_secret = var.tls_server_cert != null && var.tls_server_cert_key != null ? kubernetes_secret.server_certificate[0].metadata[0].name : "null"
+    tls_cacert_secret_name         = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
+    tls_cacert_secret_key          = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.crt" : "null"
+    tls_cakey_secret_name          = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
+    tls_cakey_secret_key           = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.key" : "null"
+    tls_server_cert_secret         = var.tls_server_cert != "" && var.tls_server_cert_key != "" ? kubernetes_secret.server_certificate[0].metadata[0].name : "null"
 
     enable_sync_catalog           = jsonencode(var.enable_sync_catalog)
     sync_by_default               = var.sync_by_default
@@ -167,6 +166,10 @@ locals {
     transparent_proxy_default_enabled          = var.transparent_proxy_default_enabled
     transparent_proxy_default_overwrite_probes = var.transparent_proxy_default_overwrite_probes
 
+    ingress_gateway_enable   = var.ingress_gateway_enable
+    ingress_gateway_defaults = yamlencode(var.ingress_gateway_defaults)
+    ingress_gateways         = yamlencode(var.ingress_gateways)
+
     terminating_gateway_enable   = var.terminating_gateway_enable
     terminating_gateway_defaults = yamlencode(var.terminating_gateway_defaults)
     terminating_gateways         = yamlencode(var.terminating_gateways)
@@ -208,7 +211,7 @@ resource "kubernetes_secret" "gossip" {
 }
 
 resource "kubernetes_secret" "ca_certificate" {
-  count = var.tls_ca_cert != null && var.tls_ca_cert_key != null ? 1 : 0
+  count = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? 1 : 0
 
   metadata {
     name        = "${var.secret_name}-server-certificate"
@@ -236,7 +239,7 @@ resource "kubernetes_secret" "server_certificate" {
   type = "Opaque"
 
   data = {
-    "tls.crt" =  file(var.tls_server_cert)
+    "tls.crt" = file(var.tls_server_cert)
     "tls.key" = file(var.tls_server_cert_key)
   }
 }

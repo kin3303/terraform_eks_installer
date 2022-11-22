@@ -81,7 +81,7 @@ variable "pod_security_policy_enable" {
 
 variable "server_replicas" {
   description = "Number of server replicas to run"
-  default     = 5
+  default     = 3
 }
 
 variable "server_datacenter" {
@@ -716,6 +716,82 @@ variable "controller_acl_token" {
   }
 }
 
+
+#################################################################################
+# Consul Connect Ingress Gateway
+#################################################################################
+variable "ingress_gateway_enable" {
+  description = "Deploy Ingress Gateways. Requires `connectInject.enabled=true` and `client.enabled=true`."
+  type        = bool
+  default     = false
+}
+
+variable "ingress_gateway_defaults" {
+  description = <<-EOF
+    Defaults sets default values for all gateway fields. With the exception
+    of annotations, defining any of these values in the `gateways` list
+    will override the default values provided here. Annotations will
+    include both the default annotations and any additional ones defined
+    for a specific gateway.
+  EOF
+
+  default = { 
+    replicas = 1
+    service = {
+      type = "ClusterIP"
+      ports = [
+        {
+          "nodePort" = null
+          "port" = 8080
+        },
+        {
+          "nodePort" = null
+          "port" = 8443
+        }
+      ]
+      annotations =  null
+      additionalSpec = null
+    }
+    serviceAccount = {
+      annotations =  null
+    }
+    resources = {
+      limits = {
+        cpu = "100m"
+        memory = "100Mi"
+      }
+      requests = {
+        cpu = "100m"
+        memory = "100Mi"
+      }
+    }
+    affinity = null
+    tolerations = null
+    topologySpreadConstraints = ""
+    nodeSelector = null
+    priorityClassName = ""
+    terminationGracePeriodSeconds = 10
+    annotations = null
+    consulNamespace = "default"
+  }
+}
+
+variable "ingress_gateways" {
+  description = <<-EOF
+    Gateways is a list of gateway objects. The only required field for
+    each is `name`, though they can also contain any of the fields in
+    `defaults`. Values defined here override the defaults except in the
+    case of annotations where both will be applied.
+  EOF
+
+  default = [
+    {
+      name = "ingress-gateway"
+    }
+  ]
+}
+
+
 #################################################################################
 # Consul Connect Terminating Gateway
 #################################################################################
@@ -736,21 +812,8 @@ variable "terminating_gateway_defaults" {
   EOF
 
   default = {
-    # Number of replicas for each terminating gateway defined.
     replicas = 2
-
-    # extraVolumes is a list of extra volumes to mount. These will be exposed
-    # to Consul in the path `/consul/userconfig/<name>/`. The value below is
-    # an array of objects, examples are shown below.
-    #  extraVolumes:
-    #    - type: secret
-    #      name: my-secret
-    #      items:  # optional items array
-    #        - key: key
-    #          path: path  # secret will now mount to /consul/userconfig/my-secret/path
     extraVolumes = []
-
-    # Resource limits for all terminating gateway pods
     resources = {
       requests = {
         cpu    = "100Mi"
@@ -761,8 +824,6 @@ variable "terminating_gateway_defaults" {
         memory = "100Mi"
       }
     }
-
-    # Resource settings for the `copy-consul-bin` init container.
     initCopyConsulContainer = {
       resources = {
         requests = {
@@ -775,10 +836,6 @@ variable "terminating_gateway_defaults" {
         }
       }
     }
-
-    # By default, we set an anti-affinity so that two of the same gateway pods
-    # won't be on the same node. NOTE: Gateways require that Consul client agents are
-    # also running on the nodes alongside each gateway pod.
     affinity = <<-EOF
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -789,40 +846,13 @@ variable "terminating_gateway_defaults" {
                 component: terminating-gateway
             topologyKey: kubernetes.io/hostname
       EOF
-
-    # Optional YAML string to specify tolerations.
     tolerations = null
-
-    # Optional YAML string to specify a nodeSelector config.
     nodeSelector = null
-
-    # Optional priorityClassName.
     priorityClassName = ""
-
-    # Annotations to apply to the terminating gateway deployment. Annotations defined
-    # here will be applied to all terminating gateway deployments in addition to any
-    # annotations defined for a specific gateway in `terminatingGateways.gateways`.
-    # Example:
-    #   annotations: |
-    #     "annotation-key": "annotation-value"
     annotations = null
-
-    # This value defines additional annotations for the terminating gateways' service account. This should be
-    # formatted as a multi-line string.
-    #
-    # ```yaml
-    # annotations: |
-    #   "sample/annotation1": "foo"
-    #   "sample/annotation2": "bar"
-    # ```
     serviceAccount = {
       annotations = null
     }
-
-    # [Enterprise Only] `consulNamespace` defines the Consul namespace to register
-    # the gateway into.  Requires `global.enableConsulNamespaces` to be true and
-    # Consul Enterprise v1.7+ with a valid Consul Enterprise license.
-    # Note: The Consul namespace MUST exist before the gateway is deployed.
     consulNamespace = "default"
   }
 }
