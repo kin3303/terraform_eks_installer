@@ -1370,3 +1370,19 @@ variable "consul_raw_values" {
   type        = bool
   default     = true
 }
+
+#################################################################################
+# Prometheus
+#################################################################################
+variable "enable_prometheus" {
+  description = "When true, the Helm chart will install a demo Prometheus server instance alongside Consul."
+  default     = false
+}
+
+#################################################################################
+# Test
+#################################################################################
+variable "enable_test_pod" {
+  description = "When using helm install, the test Pod is not submitted to the cluster so this is only useful when running helm template."
+  default     = false
+}

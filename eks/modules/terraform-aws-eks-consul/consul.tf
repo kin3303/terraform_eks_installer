@@ -1,20 +1,38 @@
 ###########################################################################
-# Consul Install
-#     https://github.com/hashicorp/consul-k8s
-#     https://developer.hashicorp.com/consul/docs/k8s/installation/install
-#     https://developer.hashicorp.com/consul/tutorials/kubernetes/kubernetes-reference-architecture
-#     https://developer.hashicorp.com/consul/docs/k8s/helm#h-global
+# Consul on Terraform 
+#     Consul Helm Chart
+#         https://github.com/hashicorp/consul-k8s
+#         https://developer.hashicorp.com/consul/docs/k8s/helm
 #
-#     https://registry.terraform.io/modules/basisai/consul/kubernetes/latest
-#     https://www.linkedin.com/pulse/how-easily-setup-consul-service-mesh-aws-eks-ihar-vauchok
-#     https://github.com/kschoche/traefik-consul
+#     Consul Install
+#         https://developer.hashicorp.com/consul/docs/k8s/installation/install  
+#
+#     Tutorials
+#        https://developer.hashicorp.com/consul/tutorials/get-started-kubernetes
+#        https://github.com/hashicorp/learn-consul-kubernetes/tree/main/service-mesh/deploy
+#
+#     Use Cases
+#        https://developer.hashicorp.com/consul/tutorials/kubernetes
+#  
+#     Web Search
+#         https://istio.io/latest/docs/examples/bookinfo/
+#         https://www.linkedin.com/pulse/how-easily-setup-consul-service-mesh-aws-eks-ihar-vauchok 
 ###########################################################################
+
+
+resource "kubernetes_namespace" "consul" {
+  metadata {
+    name =  var.chart_namespace
+  }
+}
+
+
 resource "helm_release" "consul" {
   name       = var.release_name
   chart      = var.chart_name
   repository = var.chart_repository
   version    = var.chart_version
-  namespace  = var.chart_namespace
+  namespace  = kubernetes_namespace.consul.metadata[0].name
 
   max_history = var.max_history
   timeout     = var.chart_timeout
@@ -191,6 +209,13 @@ locals {
 
     # Data Plane
     image_dataplane = "${var.consul_dataplane_name}:${var.consul_dataplane_tag}"
+
+    enable_prometheus = var.enable_prometheus
+    enable_test_pod = var.enable_test_pod
+  }
+  
+  depends_on = {
+
   }
 }
 
@@ -200,7 +225,7 @@ resource "kubernetes_secret" "gossip" {
   metadata {
     name        = "${var.secret_name}-gossip-key"
     annotations = var.secret_annotation
-    namespace   = var.chart_namespace
+    namespace   = kubernetes_namespace.consul.metadata[0].name
   }
 
   type = "Opaque"
@@ -216,7 +241,7 @@ resource "kubernetes_secret" "ca_certificate" {
   metadata {
     name        = "${var.secret_name}-server-certificate"
     annotations = var.secret_annotation
-    namespace   = var.chart_namespace
+    namespace   = kubernetes_namespace.consul.metadata[0].name
   }
 
   type = "Opaque"
@@ -233,7 +258,7 @@ resource "kubernetes_secret" "server_certificate" {
   metadata {
     name        = "${var.secret_name}-ca-certificate"
     annotations = var.secret_annotation
-    namespace   = var.chart_namespace
+    namespace   = kubernetes_namespace.consul.metadata[0].name
   }
 
   type = "Opaque"

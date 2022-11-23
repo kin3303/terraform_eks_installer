@@ -1,4 +1,5 @@
 # Available parameters and their default values for the Consul chart.
+# https://github.com/hashicorp/consul-k8s/blob/main/charts/consul/values.yaml
 
 # https://developer.hashicorp.com/consul/docs/k8s/helm#h-global
 global:
@@ -261,8 +262,8 @@ webhookCertManager:
 
 # https://developer.hashicorp.com/consul/docs/k8s/helm#h-prometheus
 prometheus:
-  enabled: false
+  enabled: ${enable_prometheus} 
 
 # https://developer.hashicorp.com/consul/docs/k8s/helm#h-tests
 tests:
-  enabled: true
+  enabled: ${enable_test_pod} 
