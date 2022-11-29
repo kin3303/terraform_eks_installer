@@ -32,7 +32,7 @@ variable "create_namespace" {
 
 variable "chart_timeout" {
   description = "Timeout to wait for the Chart to be deployed. The chart waits for all Daemonset pods to be healthy before ending. Increase this for larger clusers to avoid timeout"
-  default     = 1200
+  default     = 600
 }
 
 variable "name" {

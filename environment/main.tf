@@ -13,7 +13,7 @@ module "vpc" {
   # VPC Basic Detailes
   name = "${local.name}-${var.vpc_name}"
   cidr = var.vpc_cidr_block
-  azs  = data.aws_availability_zones.available.names
+  azs  = ["ap-northeast-2a", "ap-northeast-2c"]
 
   #Subnets
   public_subnets  = var.vpc_public_subnets

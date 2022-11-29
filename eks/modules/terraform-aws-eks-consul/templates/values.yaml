@@ -205,8 +205,8 @@ externalServers:
   k8sAuthMethodHost: null
   skipServerWatch: false
 
-#client:
-#  enabled: ${client_enable}
+client:
+  enabled: ${client_enable}
 #  image: null
 #  join: null
 #  dataDirectoryHostPath: null
