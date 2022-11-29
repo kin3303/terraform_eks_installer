@@ -15,7 +15,7 @@ variable "chart_repository" {
 
 variable "chart_version" {
   description = "Version of Chart to install. Set to empty to install the latest version"
-  default     = "1.0.0"
+  default     = "1.0.1"
 }
 
 variable "chart_namespace" {
@@ -23,14 +23,21 @@ variable "chart_namespace" {
   default     = "default"
 }
 
+
+variable "create_namespace" {
+  description = " Create the namespace if it does not yet exist"
+  default     = false
+}
+
+
 variable "chart_timeout" {
   description = "Timeout to wait for the Chart to be deployed. The chart waits for all Daemonset pods to be healthy before ending. Increase this for larger clusers to avoid timeout"
-  default     = 1800
+  default     = 1200
 }
 
 variable "name" {
   description = "Sets the prefix used for all resources in the helm chart. If not set, the prefix will be \"<helm release name>-consul\"."
-  default     = null
+  default     = "consul"
 }
 
 variable "fullname_override" {
@@ -48,27 +55,6 @@ variable "max_history" {
   default     = 20
 }
 
-variable "consul_image_name" {
-  description = "Docker Image of Consul to run"
-  default     = "hashicorp/consul"
-}
-
-variable "consul_image_tag" {
-  description = "Docker image tag of Consul to run"
-  default     = "1.14.0"
-}
-
-variable "consul_k8s_image" {
-  description = "Docker image of the consul-k8s binary to run"
-  default     = "hashicorp/consul-k8s-control-plane"
-}
-
-# https://hub.docker.com/r/hashicorp/consul-k8s-control-plane/tags
-variable "consul_k8s_tag" {
-  description = "Image tag of the consul-k8s binary to run"
-  default     = "1.0"
-}
-
 variable "consul_domain" {
   description = "Top level Consul domain for DNS queries"
   default     = "consul"
@@ -81,7 +67,7 @@ variable "pod_security_policy_enable" {
 
 variable "server_replicas" {
   description = "Number of server replicas to run"
-  default     = 3
+  default     = 1
 }
 
 variable "server_datacenter" {
@@ -187,6 +173,12 @@ variable "server_service_account_annotations" {
   default     = ""
 }
 
+
+variable "client_enable" {
+  description = "Enable consul client"
+  default     = false
+}
+
 variable "client_grpc" {
   description = "Enable GRPC port for clients. Required for Connect Inject"
   default     = true
@@ -255,7 +247,7 @@ variable "client_priority_class" {
 
 variable "enable_sync_catalog" {
   description = "Enable Service catalog sync: https://www.consul.io/docs/platform/k8s/service-sync.html"
-  default     = true
+  default     = false
 }
 
 variable "sync_by_default" {
@@ -290,7 +282,7 @@ variable "sync_cluster_ip_services" {
 
 variable "sync_node_port_type" {
   description = "Configures the type of syncing that happens for NodePort services. The only valid options are: ExternalOnly, InternalOnly, and ExternalFirst. ExternalOnly will only use a node's ExternalIP address for the sync, otherwise the service will not be synced. InternalOnly uses the node's InternalIP address. ExternalFirst will preferentially use the node's ExternalIP address, but if it doesn't exist, it will use the node's InternalIP address instead."
-  default     = ""
+  default     = "ExternalFirst"
 }
 
 variable "sync_add_k8s_namespace_suffix" {
@@ -352,58 +344,12 @@ variable "ui_service_type" {
 
 variable "ui_annotations" {
   description = "UI service annotations"
-  default     = ""
+  default     =  null
 }
 
 variable "ui_additional_spec" {
   description = "Additional Spec for the UI service"
-  default     = ""
-}
-
-variable "configure_kube_dns" {
-  description = "Configure kube-dns and OVERWRITE it to resolve .consul domains with Consul DNS"
-  default     = false
-}
-
-variable "configure_core_dns" {
-  description = "Configure core-dns and OVERWRITE it to resolve .consul domains with Consul DNS"
-  default     = false
-}
-
-variable "core_dns_template" {
-  description = "Template for CoreDNS `CoreFile` configuration. Use Terraform string interpolation format with the variable `consul_dns_address` for Consul DNS endpoint. See Default for an example"
-
-  default = <<-EOF
-    .:53 {
-      errors
-      health
-      kubernetes cluster.local in-addr.arpa ip6.arpa {
-        pods insecure
-        fallthrough in-addr.arpa ip6.arpa
-      }
-      prometheus :9153
-      forward . /etc/resolv.conf
-      cache 30
-      loop
-      reload
-      loadbalance
-    }
-
-    consul {
-      errors
-      cache 30
-      forward . $${consul_dns_address}
-    }
-    EOF
-}
-
-variable "core_dns_labels" {
-  description = "Labels for CoreDNS ConfigMap"
-  default = {
-    "eks.amazonaws.com/component"     = "coredns"
-    "k8s-app"                         = "kube-dns"
-    "addonmanager.kubernetes.io/mode" = "EnsureExists"
-  }
+  default     = null
 }
 
 variable "consul_recursors" {
@@ -458,10 +404,9 @@ variable "replication_token" {
 }
 
 variable "acl_tolerations" {
-  description = "A YAML string that can be templated via helm specifying the tolerations for the server-acl-init and server-acl-init-cleanup jobs"
+  description = " tolerations configures the taints and tolerations for the server-acl-init"
   default     = ""
 }
-
 
 #################################################################################
 # Consul Connect
@@ -473,13 +418,13 @@ variable "connect_enable" {
 
 variable "enable_connect_inject" {
   description = "Enable Connect Injector process"
-  default     = false
+  default     = true
 }
 
 variable "connect_inject_replicas" {
   description = "Number of replicas for Connect Inject deployment"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "connect_inject_by_default" {
@@ -525,8 +470,8 @@ variable "connect_inject_resources" {
       memory = "50Mi"
     }
     limits = {
-      cpu    = "50m"
-      memory = "50Mi"
+      cpu    = "100m"
+      memory = "100Mi"
     }
   }
 }
@@ -574,37 +519,18 @@ variable "connect_inject_init_resources" {
   default = {
     requests = {
       cpu    = "50m"
-      memory = "50Mi"
+      memory = "25Mi"
     }
     limits = {
       cpu    = "50m"
-      memory = "50Mi"
-    }
-  }
-}
-
-variable "consul_sidecar_container_resources" {
-  description = <<-EOF
-    Resource settings for consul -sidecar containers.
-    The consul  sidecar ensures the Consul services are always registered with
-    their local consul clients and is used by the ingress/terminating/mesh gateways
-    as well as with every connect-injected service.
-    EOF
-  default = {
-    requests = {
-      cpu    = "20m"
-      memory = "50Mi"
-    }
-    limits = {
-      cpu    = "20m"
-      memory = "50Mi"
+      memory = "150Mi"
     }
   }
 }
 
 variable "envoy_extra_args" {
   description = "Pass arguments to the injected envoy sidecar. Valid arguments to pass to envoy can be found here: https://www.envoyproxy.io/docs/envoy/latest/operations/cli"
-  default     = null
+  default     = ""
 }
 
 variable "connect_inject_acl_binding_rule_selector" {
@@ -672,8 +598,8 @@ variable "controller_resources" {
       memory = "50Mi"
     }
     limits = {
-      cpu    = "100m"
-      memory = "50Mi"
+      cpu    = "150m"
+      memory = "100Mi"
     }
   }
 }
@@ -735,44 +661,44 @@ variable "ingress_gateway_defaults" {
     for a specific gateway.
   EOF
 
-  default = { 
+  default = {
     replicas = 1
     service = {
       type = "ClusterIP"
       ports = [
         {
           "nodePort" = null
-          "port" = 8080
+          "port"     = 8080
         },
         {
           "nodePort" = null
-          "port" = 8443
+          "port"     = 8443
         }
       ]
-      annotations =  null
+      annotations    = null
       additionalSpec = null
     }
     serviceAccount = {
-      annotations =  null
+      annotations = null
     }
     resources = {
       limits = {
-        cpu = "100m"
+        cpu    = "100m"
         memory = "100Mi"
       }
       requests = {
-        cpu = "100m"
+        cpu    = "100m"
         memory = "100Mi"
       }
     }
-    affinity = null
-    tolerations = null
-    topologySpreadConstraints = ""
-    nodeSelector = null
-    priorityClassName = ""
+    affinity                      = null
+    tolerations                   = null
+    topologySpreadConstraints     = ""
+    nodeSelector                  = null
+    priorityClassName             = ""
     terminationGracePeriodSeconds = 10
-    annotations = null
-    consulNamespace = "default"
+    annotations                   = null
+    consulNamespace               = "default"
   }
 }
 
@@ -812,7 +738,7 @@ variable "terminating_gateway_defaults" {
   EOF
 
   default = {
-    replicas = 2
+    replicas     = 2
     extraVolumes = []
     resources = {
       requests = {
@@ -836,7 +762,7 @@ variable "terminating_gateway_defaults" {
         }
       }
     }
-    affinity = <<-EOF
+    affinity          = <<-EOF
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
@@ -846,10 +772,10 @@ variable "terminating_gateway_defaults" {
                 component: terminating-gateway
             topologyKey: kubernetes.io/hostname
       EOF
-    tolerations = null
-    nodeSelector = null
+    tolerations       = null
+    nodeSelector      = null
     priorityClassName = ""
-    annotations = null
+    annotations       = null
     serviceAccount = {
       annotations = null
     }
@@ -935,346 +861,24 @@ variable "gossip_enable_auto_generate" {
 
 variable "tls_ca_cert" {
   description = "Self generated CA path for Consul Server TLS. Values should be PEM encoded"
-  default = ""
+  default     = ""
 }
 
 
 variable "tls_ca_cert_key" {
   description = "Self generated CA path for Consul Server TLS. Values should be PEM encoded"
-  default = ""
+  default     = ""
 }
 
 
 variable "tls_server_cert" {
   description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
-  default = ""
+  default     = ""
 }
 
 variable "tls_server_cert_key" {
   description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
-  default = ""
-}
-
-
-variable "tls_server_cert_secret" {
-  description = "A Kubernetes secret containing a certificate & key for the server agents to use for TLS communication within the Consul cluster. Additional SANs are required."
-  type        = string
-  default     = null
-}
-
-#################################################################################
-# Consul ESM
-#################################################################################
-variable "enable_esm" {
-  description = "Enable Consul ESM deployment"
-  type        = bool
-  default     = false
-}
-
-variable "esm_release_name" {
-  description = "Name of the ESM Chart Release"
-  type        = string
-  default     = "consul-esm"
-}
-
-variable "esm_chart_name" {
-  description = "Name of the ESM Chart name"
-  type        = string
-  default     = "consul-esm"
-}
-
-variable "esm_chart_repository" {
-  description = "ESM Chart repository"
-  type        = string
-  default     = "https://basisai.github.io/charts/"
-}
-
-variable "esm_chart_version" {
-  description = "ESM Chart version"
-  type        = string
-  default     = "0.3.1"
-}
-
-variable "esm_replica" {
-  description = "Number of ESM replica"
-  type        = number
-  default     = 3
-}
-
-variable "esm_image" {
-  description = "Docker image for ESM"
-  type        = string
-  default     = "hashicorp/consul-esm"
-}
-
-variable "esm_tag" {
-  description = "Docker Image tag for ESM"
-  type        = string
-  default     = "0.6.0"
-}
-
-variable "esm_resources" {
-  description = "Resources for ESM"
-  type        = any
-  default = {
-    requests = {
-      cpu = "200m"
-    }
-    limits = {
-      memory = "256Mi"
-    }
-  }
-}
-
-variable "esm_affinity" {
-  description = "Affinity for ESM"
-  type        = any
-  default     = {}
-}
-
-variable "esm_tolerations" {
-  description = "Toleration for ESM"
-  type        = any
-  default     = []
-}
-
-variable "esm_pod_security_context" {
-  description = "securityContext for ESM pods"
-  type        = any
-  default     = {}
-}
-
-variable "esm_container_security_context" {
-  description = "securityContext for ESM containers"
-  type        = any
-  default     = {}
-}
-
-variable "esm_pod_annotations" {
-  description = "Annotations for Consul ESM Pods"
-  type        = map(string)
-  default     = {}
-}
-
-variable "esm_log_level" {
-  description = "Log level for ESM"
-  type        = string
-  default     = "INFO"
-}
-
-variable "esm_service_name" {
-  description = "ESM service name in Consul"
-  type        = string
-  default     = "consul-esm"
-}
-
-variable "esm_service_tag" {
-  description = "Service tag for ESM"
-  type        = string
   default     = ""
-}
-
-variable "esm_kv_path" {
-  description = "The directory in the Consul KV store to use for storing ESM runtime data."
-  type        = string
-  default     = "consul-esm/"
-}
-
-variable "esm_external_node_meta" {
-  description = "The node metadata values used for the ESM to qualify a node in the catalog as an \"external node\"."
-  type        = map(string)
-  default = {
-    "external-node" = "true"
-  }
-}
-
-variable "esm_node_reconnect_timeout" {
-  description = "The length of time to wait before reaping an external node due to failed pings."
-  type        = string
-  default     = "72h"
-}
-
-variable "esm_node_probe_interval" {
-  description = "The interval to ping and update coordinates for external nodes that have 'external-probe' set to true. By default, ESM will attempt to ping and  update the coordinates for all nodes it is watching every 10 seconds."
-  type        = string
-  default     = "10s"
-}
-
-variable "esm_http_addr" {
-  description = "HTTP address of the local Consul agent"
-  type        = string
-  default     = ""
-}
-
-variable "esm_ping_type" {
-  description = "The method to use for pinging external nodes."
-  type        = string
-  default     = "udp"
-}
-
-variable "esm_env" {
-  description = "Environment variables for Consul ESM"
-  type        = any
-  default     = []
-}
-
-variable "esm_init_container_set_sysctl" {
-  description = "Enable setting sysctl settings via a privileged container to allow pings"
-  type        = bool
-  default     = false
-}
-
-variable "esm_use_node_agent" {
-  description = "Use Consul agent Daemonset"
-  type        = bool
-  default     = true
-}
-
-variable "esm_node_agent_port" {
-  description = "Override port for Consul agent Daemonset"
-  type        = number
-  default     = null
-}
-
-variable "consul_template_image" {
-  description = "Image for Consul Template"
-  type        = string
-  default     = "hashicorp/consul-template:0.26.0"
-}
-
-variable "esm_server_address" {
-  description = "Override Consul Server address for TLS when using Auto Encrypt"
-  type        = string
-  default     = null
-}
-
-variable "esm_server_port" {
-  description = "Override Consul Server port for TLS when using Auto Encrypt"
-  type        = number
-  default     = null
-}
-
-
-#################################################################################
-# Consul Exporter for Prometheus
-#################################################################################
-variable "enable_exporter" {
-  description = "Enable Consul Exporter deployment"
-  default     = false
-}
-
-variable "exporter_release_name" {
-  description = "Name of the Consul Exporter Chart Release"
-  default     = "consul-exporter"
-}
-
-variable "exporter_chart_name" {
-  description = "Name of the Consul Exporter Chart name"
-  default     = "prometheus-consul-exporter"
-}
-
-variable "exporter_chart_repository" {
-  description = "Consul Exporter Chart repository"
-  default     = "https://prometheus-community.github.io/helm-charts"
-}
-
-variable "exporter_chart_version" {
-  description = "Consul Exporter Chart version"
-  default     = "0.4.0"
-}
-
-variable "exporter_replica" {
-  description = "Number of Consul Exporter replicas"
-  default     = 1
-}
-
-variable "exporter_image" {
-  description = "Docker image for Consul Exporter"
-  default     = "prom/consul-exporter"
-}
-
-variable "exporter_tag" {
-  description = "Docker Image tag for Consul Exporter"
-  default     = "v0.7.1"
-}
-
-variable "exporter_resources" {
-  description = "Resources for Consul Exporter"
-
-  default = {
-    requests = {
-      cpu = "200m"
-    }
-    limits = {
-      memory = "256Mi"
-    }
-  }
-}
-
-variable "exporter_affinity" {
-  description = "Affinity for Consul Exporter"
-  default     = {}
-}
-
-variable "exporter_tolerations" {
-  description = "Tolerations for Consul Exporter"
-  default     = []
-}
-
-variable "exporter_service_annotations" {
-  description = "Consul Exporter service's annotations"
-  default     = {}
-}
-
-variable "exporter_rbac_enabled" {
-  description = "Create RBAC resources for Exporter"
-  default     = true
-}
-
-variable "exporter_psp" {
-  description = "Create PSP resources for Exporter"
-  default     = true
-}
-
-variable "exporter_service_monitor" {
-  description = "Create a ServiceMonitor to configure scraping"
-  default     = false
-}
-
-variable "exporter_options" {
-  description = "Arguments for Exporter. See https://github.com/prometheus/consul_exporter#flags"
-  default     = {}
-}
-
-variable "exporter_env" {
-  description = "Additional Environment Variables for Exporter"
-  default     = []
-}
-
-variable "exporter_extra_volumes" {
-  description = "Extra volumes for Exporter"
-  default     = []
-}
-
-variable "exporter_extra_volume_mounts" {
-  description = "Extra volume mounts for Exporter"
-  default     = []
-}
-
-variable "exporter_init_containers" {
-  description = "Extra Init Containers"
-  default     = []
-}
-
-variable "exporter_extra_containers" {
-  description = "Extra extra Containers"
-  default     = []
-}
-
-variable "exporter_pod_annotations" {
-  description = "Annotations for Exporter Pods"
-  type        = map(string)
-  default     = {}
 }
 
 #################################################################################
@@ -1350,39 +954,12 @@ variable "connect_inject_service_account_annotations" {
   default     = ""
 }
 
-
- 
-variable "consul_dataplane_name" {
-  description = "Docker Image of Consul dataplane to run"
-  default     = "hashicorp/consul-dataplane"
-}
-
-variable "consul_dataplane_tag" {
-  description = "Docker image tag of Consul dataplane to run"
-  default     = "1.0.0"
-}
-
-#################################################################################
-# Diff aid
-#################################################################################
-variable "consul_raw_values" {
-  description = "Create a `null_resource` with the raw values passed in to render the YAML values file. Useful for observing diffs."
-  type        = bool
-  default     = true
-}
-
-#################################################################################
-# Prometheus
-#################################################################################
 variable "enable_prometheus" {
-  description = "When true, the Helm chart will install a demo Prometheus server instance alongside Consul."
+  description = "When true, the Helm chart will install Prometheus server instance alongside Consul."
   default     = false
 }
 
-#################################################################################
-# Test
-#################################################################################
-variable "enable_test_pod" {
-  description = "When using helm install, the test Pod is not submitted to the cluster so this is only useful when running helm template."
+variable "enable_grafana" {
+  description = "When true, the Helm chart will install Grtafana server instance alongside Consul."
   default     = false
 }

@@ -10,6 +10,8 @@
 #     Tutorials
 #        https://developer.hashicorp.com/consul/tutorials/get-started-kubernetes
 #        https://github.com/hashicorp/learn-consul-kubernetes/tree/main/service-mesh/deploy
+#        https://developer.hashicorp.com/consul/tutorials/kubernetes-features/service-mesh-observability
+#        https://github.com/hashicorp/learn-consul-kubernetes.git
 #
 #     Use Cases
 #        https://developer.hashicorp.com/consul/tutorials/kubernetes
@@ -18,48 +20,32 @@
 #         https://istio.io/latest/docs/examples/bookinfo/
 #         https://www.linkedin.com/pulse/how-easily-setup-consul-service-mesh-aws-eks-ihar-vauchok 
 ###########################################################################
-
-
-resource "kubernetes_namespace" "consul" {
-  metadata {
-    name =  var.chart_namespace
-  }
-}
-
-
 resource "helm_release" "consul" {
-  name       = var.release_name
-  chart      = var.chart_name
-  repository = var.chart_repository
-  version    = var.chart_version
-  namespace  = kubernetes_namespace.consul.metadata[0].name
-
-  max_history = var.max_history
-  timeout     = var.chart_timeout
+  name             = var.release_name
+  chart            = var.chart_name
+  repository       = var.chart_repository
+  version          = var.chart_version
+  namespace        = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
+  create_namespace = false
+  max_history      = var.max_history
+  timeout          = var.chart_timeout
+  cleanup_on_fail  = true
 
   values = concat([local.chart_values], var.additional_chart_values)
 }
-
-resource "null_resource" "consul_values" {
-  count    = var.consul_raw_values ? 1 : 0
-  triggers = local.consul_values
-}
-
 
 locals {
   chart_values = templatefile("${path.module}/templates/values.yaml", local.consul_values)
 
   consul_values = {
-    name      = var.name != null ? jsonencode(var.name) : "null"
-    image     = "${var.consul_image_name}:${var.consul_image_tag}"
-    image_k8s = "${var.consul_k8s_image}:${var.consul_k8s_tag}"
+    name = var.name != null ? var.name : "null"
 
     pod_security_policy_enable = var.pod_security_policy_enable
     log_json_enable            = var.log_json_enable
 
     gossip_enable_auto_generate = var.gossip_enable_auto_generate
-    gossip_secret               = var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : "null"
-    gossip_key                  = var.gossip_encryption_key != null ? "gossip" : "null"
+    gossip_secret               = var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : ""
+    gossip_key                  = var.gossip_encryption_key != null ? "gossip" : ""
 
     datacenter = var.server_datacenter
 
@@ -89,8 +75,9 @@ locals {
       secretName = var.replication_token.secret_name
       secretKey  = var.replication_token.secret_key
     })
-    acl_tolerations = var.acl_tolerations
+    acl_tolerations = jsonencode(var.acl_tolerations)
 
+    client_enable         = var.client_enable
     client_grpc           = var.client_grpc
     client_resources      = yamlencode(var.client_resources)
     client_extra_config   = jsonencode(jsonencode(var.client_extra_config))
@@ -160,7 +147,6 @@ locals {
 
     connect_inject_sidecar_proxy_resources = yamlencode(var.connect_inject_sidecar_proxy_resources)
     connect_inject_init_resources          = yamlencode(var.connect_inject_init_resources)
-    consul_sidecar_container_resources     = yamlencode(var.consul_sidecar_container_resources)
     envoy_extra_args                       = var.envoy_extra_args != null ? jsonencode(var.envoy_extra_args) : "null"
 
     connect_inject_acl_binding_rule_selector = var.connect_inject_acl_binding_rule_selector
@@ -206,16 +192,13 @@ locals {
     connect_inject_default_prometheus_scrape_path = var.connect_inject_default_prometheus_scrape_path
 
     connect_inject_service_account_annotations = jsonencode(var.connect_inject_service_account_annotations)
-
-    # Data Plane
-    image_dataplane = "${var.consul_dataplane_name}:${var.consul_dataplane_tag}"
-
-    enable_prometheus = var.enable_prometheus
-    enable_test_pod = var.enable_test_pod
   }
-  
-  depends_on = {
+}
 
+resource "kubernetes_namespace" "consul" {
+  count = var.create_namespace == true ? 1 : 0
+  metadata {
+    name = var.chart_namespace
   }
 }
 
@@ -225,7 +208,7 @@ resource "kubernetes_secret" "gossip" {
   metadata {
     name        = "${var.secret_name}-gossip-key"
     annotations = var.secret_annotation
-    namespace   = kubernetes_namespace.consul.metadata[0].name
+    namespace   = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
   }
 
   type = "Opaque"
@@ -241,7 +224,7 @@ resource "kubernetes_secret" "ca_certificate" {
   metadata {
     name        = "${var.secret_name}-server-certificate"
     annotations = var.secret_annotation
-    namespace   = kubernetes_namespace.consul.metadata[0].name
+    namespace   = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
   }
 
   type = "Opaque"
@@ -258,7 +241,7 @@ resource "kubernetes_secret" "server_certificate" {
   metadata {
     name        = "${var.secret_name}-ca-certificate"
     annotations = var.secret_annotation
-    namespace   = kubernetes_namespace.consul.metadata[0].name
+    namespace   = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
   }
 
   type = "Opaque"

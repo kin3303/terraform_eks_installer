@@ -29,6 +29,7 @@ output "eks_cluster" {
   }
 }
 
+/*
 output "eks_public_node_group" {
   value = {
     node_group_public_id      = aws_eks_node_group.eks_ng_public.id
@@ -37,6 +38,7 @@ output "eks_public_node_group" {
     node_group_public_version = aws_eks_node_group.eks_ng_public.version
   }
 }
+*/
 
 output "eks_private_node_group" {
   value = {

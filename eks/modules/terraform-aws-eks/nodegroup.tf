@@ -4,6 +4,7 @@
 ################################################################################################
 
 # Public 
+/*
 resource "aws_eks_node_group" "eks_ng_public" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = local.resource_names.public_node_group_name
@@ -12,8 +13,8 @@ resource "aws_eks_node_group" "eks_ng_public" {
 
   ami_type       = "AL2_x86_64"
   capacity_type  = "ON_DEMAND"
-  disk_size      = 20
-  instance_types = ["t2.medium"]
+  disk_size      = 40
+  instance_types = ["t2.large"]
 
   dynamic "remote_access" {
     for_each = var.nodegroup_ssh_key == null && length(var.nodegroup_ssh_allowed_security_group_ids) == 0 ? [] : [1]
@@ -52,6 +53,7 @@ resource "aws_eks_node_group" "eks_ng_public" {
     "k8s.io/cluster-autoscaler/enabled" = true    
   }
 }
+*/
 
 # Private
 resource "aws_eks_node_group" "eks_ng_private" {
@@ -62,8 +64,8 @@ resource "aws_eks_node_group" "eks_ng_private" {
 
   ami_type       = "AL2_x86_64"
   capacity_type  = "ON_DEMAND"
-  disk_size      = 20
-  instance_types = ["t2.medium"]
+  disk_size      = 40
+  instance_types = ["t2.large"]
 
   dynamic "remote_access" {
     for_each = var.nodegroup_ssh_key == null && length(var.nodegroup_ssh_allowed_security_group_ids) == 0 ? [] : [1]
@@ -75,9 +77,9 @@ resource "aws_eks_node_group" "eks_ng_private" {
   }
 
   scaling_config {
-    desired_size = 1
-    min_size     = 1
-    max_size     = 3
+    desired_size = 3
+    min_size     = 3
+    max_size     = 5
   }
 
   update_config {

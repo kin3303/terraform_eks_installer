@@ -19,7 +19,12 @@ terraform {
       source = "hashicorp/http"
       #version = "2.1.0"
       version = "~> 2.1"
-    }       
+    }
+
+    kubectl = {
+      source = "gavinbunney/kubectl"
+      version = "1.14.0"
+    }            
   }
 }
 
@@ -42,4 +47,11 @@ provider "helm" {
 }
 
 provider "http" {
+}
+
+provider "kubectl" {
+  host                   = data.terraform_remote_state.eks.outputs.eks_cluster.cluster_endpoint
+  cluster_ca_certificate = base64decode(data.terraform_remote_state.eks.outputs.eks_cluster.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.cluster_auth.token
+  load_config_file       = false
 }
