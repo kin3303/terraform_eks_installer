@@ -117,41 +117,41 @@ global:
       secretKey: null
 server:
   enabled: "-"
-  image: null  
+#  image: null  
   replicas: ${server_replicas}
-  bootstrapExpect: null
-  serverCert:
-    secretName: ${tls_server_cert_secret}
-  exposeGossipAndRPCPorts: false
-  ports:
-    serflan:
-      port: 8301
-  storage: ${server_storage} #10Gi
-  storageClass: ${server_storage_class} #null
-  connect: ${connect_enable} #true
-  serviceAccount:
-    annotations: ${server_service_account_annotations} #null
-  resources:
-    requests:
-      memory: "100Mi"
-      cpu: "100m"
-    limits:
-      memory: "100Mi"
-      cpu: "100m"
-  securityContext:
-    runAsNonRoot: true
-    runAsGroup: 1000
-    runAsUser: 100
-    fsGroup: 1000
-  containerSecurityContext:
-    server: null
-  updatePartition: ${server_update_partition}
-  disruptionBudget:
-    enabled: true
-    maxUnavailable: null
-  extraConfig: ${server_extra_config}
-  extraVolumes: ${server_extra_volumes}
-  extraContainers: []
+#  bootstrapExpect: null
+#  serverCert:
+#    secretName: ${tls_server_cert_secret}
+#  exposeGossipAndRPCPorts: false
+#  ports:
+#    serflan:
+#      port: 8301
+#  storage: ${server_storage} #10Gi
+#  storageClass: ${server_storage_class} #null
+#  connect: ${connect_enable} #true
+#  serviceAccount:
+#    annotations: ${server_service_account_annotations} #null
+#  resources:
+#    requests:
+#      memory: "100Mi"
+#      cpu: "100m"
+#    limits:
+#      memory: "100Mi"
+#      cpu: "100m"
+#  securityContext:
+#    runAsNonRoot: true
+#    runAsGroup: 1000
+#    runAsUser: 100
+#    fsGroup: 1000
+#  containerSecurityContext:
+#    server: null
+#  updatePartition: ${server_update_partition}
+#  disruptionBudget:
+#    enabled: true
+#    maxUnavailable: null
+#  extraConfig: ${server_extra_config}
+#  extraVolumes: ${server_extra_volumes}
+#  extraContainers: []
 #  affinity: |
 #    podAntiAffinity:
 #      requiredDuringSchedulingIgnoredDuringExecution:
@@ -195,18 +195,18 @@ server:
 #        cpu: "50m"
 #    caCert: null
 
-externalServers:
-  enabled: false
-  hosts: []
-  httpsPort: 8501
-  grpcPort: 8502
-  tlsServerName: null
-  useSystemRoots: false
-  k8sAuthMethodHost: null
-  skipServerWatch: false
+#externalServers:
+#  enabled: false
+#  hosts: []
+#  httpsPort: 8501
+#  grpcPort: 8502
+#  tlsServerName: null
+#  useSystemRoots: false
+#  k8sAuthMethodHost: null
+#  skipServerWatch: false
 
-client:
-  enabled: ${client_enable}
+#client:
+#  enabled: ${client_enable}
 #  image: null
 #  join: null
 #  dataDirectoryHostPath: null
