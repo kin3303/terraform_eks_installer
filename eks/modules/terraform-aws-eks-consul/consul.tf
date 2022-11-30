@@ -85,6 +85,10 @@ locals {
     agent_metrics_retention_time = var.agent_metrics_retention_time
     enable_gateway_metrics       = var.enable_gateway_metrics
 
+    # global.federation
+    federation_enable        = var.federation_enable
+    create_federation_secret = var.create_federation_secret
+
     ###########################################################################
     # server
     ###########################################################################
@@ -183,11 +187,13 @@ locals {
     # ingressGateways
     ###########################################################################
     ingress_gateway_enable = var.ingress_gateway_enable
+    ingress_gateways       = yamlencode(var.ingress_gateways)
 
     ###########################################################################
     # terminatingGateway
     ###########################################################################
     terminating_gateway_enable = var.terminating_gateway_enable
+    terminating_gateways       = yamlencode(var.terminating_gateways)
   }
 }
 

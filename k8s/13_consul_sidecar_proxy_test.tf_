@@ -7,23 +7,24 @@ locals {
 module "eks_consul_installer" {
   source = "../eks/modules/terraform-aws-eks-consul"
   create_namespace            = true
-  server_datacenter           = local.datacenter
-  consul_domain               = local.domain
   chart_namespace             = local.namespace
+
+  # global
+  consul_datacenter           = local.datacenter
+  consul_domain               = local.domain
+
+  # global.gossipEncryption
   gossip_enable_auto_generate = true
+
+  # global.tls
   tls_enable_auto_encrypt     = true
+
+  # global.metrics
   metrics_enabled             = true
   enable_agent_metrics        = true
-  enable_gateway_metrics      = true  
-  connect_enable              = true
-  manage_system_acls          = false
-  ingress_gateway_enable      = false
-  enable_prometheus           = false
-  enable_test_pod             = false
-
-  #################################################################################
-  # ConnectInject
-  #################################################################################      
+  enable_gateway_metrics      = true
+ 
+  # connectInject 
   enable_connect_inject                 = true
   connect_inject_by_default             = true
   connect_inject_default_enable_merging = true
@@ -229,7 +230,7 @@ resource "kubernetes_deployment" "web_deployment" {
 #    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
 #
 # UI 활성화 확인
-#    kubectl port-forward service/consul-consul-server --namespace consul 8501:8501
+#    kubectl port-forward service/consul-server --namespace consul 8501:8501
 #    https://localhost:8501/ui/dc1/services
 #
 # Service 확인

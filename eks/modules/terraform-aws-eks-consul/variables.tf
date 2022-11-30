@@ -224,6 +224,29 @@ variable "enable_gateway_metrics" {
   default     = true
 }
 
+
+
+#################################################################################
+# global.federation
+#################################################################################
+variable "federation_enable" {
+  description = "If enabled, this datacenter will be federation-capable. Only federation via mesh gateways is supported."
+  default = false
+}
+ 
+variable "create_federation_secret" { 
+  description = <<-EOF
+    If true, the chart will create a Kubernetes secret that can be imported
+    into secondary datacenters so they can federate with this datacenter. The
+    secret contains all the information secondary datacenters need to contact
+    and authenticate with this datacenter. This should only be set to true
+    in your primary datacenter. The secret name is
+    `<global.name>-federation` (if setting `global.name`), otherwise
+    `<helm-release-name>-consul-federation`.
+  EOF  
+  default = false
+}
+
 #################################################################################
 # server
 #################################################################################
@@ -740,6 +763,22 @@ variable "ingress_gateway_enable" {
   default     = false
 }
 
+variable "ingress_gateways" {
+  description = <<-EOF
+    Gateways is a list of gateway objects. The only required field for
+    each is `name`, though they can also contain any of the fields in
+    `defaults`. Values defined here override the defaults except in the
+    case of annotations where both will be applied.
+  EOF
+
+  default = [
+    {
+      name = "ingress-gateway"
+    }
+  ]
+}
+
+
 #################################################################################
 # terminatingGateways
 #################################################################################
@@ -748,6 +787,23 @@ variable "terminating_gateway_enable" {
   type        = bool
   default     = false
 }
+
+variable "terminating_gateways" {
+  description = <<-EOF
+      Gateways is a list of gateway objects. The only required field for
+      each is `name`, though they can also contain any of the fields in
+      `terminating_gateway_defaults`. Values defined here override the defaults except in the
+      case of annotations where both will be applied.
+    EOF
+
+  default = [
+    {
+      name = "terminating-gateway"
+    }
+  ]
+}
+
+
  
 #################################################################################
 # Etc

@@ -1,4 +1,4 @@
-# https://developer.hashicorp.com/consul/tutorials/kubernetes-features/kubernetes-layer7-observability
+# https://developer.hashicorp.com/consul/tutorials/kubernetes/kubernetes-layer7-observability
 
 locals {
   domain     = "consul"

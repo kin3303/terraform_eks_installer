@@ -1,3 +1,4 @@
+# https://developer.hashicorp.com/consul/tutorials/kubernetes-features/service-mesh-traffic-management
 locals {
   domain     = "consul"
   namespace  = "consul"
@@ -8,26 +9,28 @@ module "eks_consul_installer" {
   source = "../eks/modules/terraform-aws-eks-consul"
 
   create_namespace                      = true
-  server_datacenter                     = local.datacenter
+  consul_datacenter                     = local.datacenter
   consul_domain                         = local.domain
   chart_namespace                       = local.namespace
+
+  # global.gossipEncryption
   gossip_enable_auto_generate           = true
+
+  # global.tls
   tls_enable_auto_encrypt               = true
+
+  # global.acl
+  manage_system_acls                    = true
+
+  # global.metrics
   metrics_enabled                       = true
   enable_agent_metrics                  = true
-  enable_gateway_metrics                = true  
-  connect_enable                        = true
-  ingress_gateway_enable                = false
-  enable_prometheus                     = false
-  enable_test_pod                       = false
+  enable_gateway_metrics                = true
+
+  # connectInject
   enable_connect_inject                 = true
   connect_inject_by_default             = true
   connect_inject_default_enable_merging = true
-
-  #################################################################################
-  # ACL Enable
-  #################################################################################
-  manage_system_acls = true
 }
 
 
@@ -232,7 +235,6 @@ resource "kubernetes_deployment" "static_client" {
 #################################################################################
 # Service Intention
 #################################################################################
-/*
 resource "kubectl_manifest" "service_intention" {
   yaml_body = <<YAML
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -250,13 +252,12 @@ YAML
     kubernetes_deployment.static_server
   ]
 }
-*/
 
 # Check Result
 #    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
 #
 # UI 활성화 확인
-#    kubectl port-forward service/consul-consul-server --namespace consul 8501:8501
+#    kubectl port-forward service/consul-server --namespace consul 8501:8501
 #    https://localhost:8501/ui/dc1/services
 #
 # Intention 을 켜고 끌때 Service 확인

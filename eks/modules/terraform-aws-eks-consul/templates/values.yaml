@@ -81,8 +81,8 @@ global:
     secretKey: null
     enableLicenseAutoload: true
   federation:
-    enabled: false
-    createFederationSecret: false
+    enabled: ${federation_enable}
+    createFederationSecret: ${create_federation_secret}
     primaryDatacenter: null
     primaryGateways: []
     k8sAuthMethodHost: null  
@@ -495,7 +495,7 @@ ingressGateways:
     annotations: null
     consulNamespace: "default"
   gateways:
-  - name: ingress-gateway
+    ${indent(4, ingress_gateways)}
 
 terminatingGateways:
   enabled:  ${terminating_gateway_enable}
@@ -519,7 +519,7 @@ terminatingGateways:
       annotations: null
     consulNamespace: "default"
   gateways:
-  - name: terminating-gateway
+    ${indent(4, terminating_gateways)}
 
 apiGateway:
   enabled: false
