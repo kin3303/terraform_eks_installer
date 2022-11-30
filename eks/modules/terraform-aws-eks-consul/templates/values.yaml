@@ -45,12 +45,12 @@ global:
           secretName: null
         tlsCert:
           secretName: null
-  gossipEncryption:
+  gossipEncryption: ##  Gossip Encryption (All members)
     autoGenerate: ${gossip_enable_auto_generate}
     secretName: ${gossip_secret}
     secretKey: ${gossip_key}
   recursors: ${consul_recursors}
-  tls:
+  tls: ##  RPC Encryption (Server<->Client)
     enabled: ${tls_enabled}
     enableAutoEncrypt: ${tls_enable_auto_encrypt}
     serverAdditionalDNSSANs: ${tls_server_additional_dns_sans}
@@ -132,10 +132,6 @@ server:
       cpu: "200m"
   securityContext:
     ${indent(4, server_security_context)}
-    #runAsNonRoot: true
-    #runAsGroup: 1000
-    #runAsUser: 100
-    #fsGroup: 1000
   containerSecurityContext:
     server: null
   updatePartition: ${server_update_partition}
@@ -146,7 +142,7 @@ server:
   storageClass: ${server_storage_class} 
   serviceAccount:
     annotations: ${server_service_account_annotations}
-  connect: ${server_connect_enable}
+  connect: ${server_connect_enable} ## Service Mesh Encryption
   extraConfig: ${server_extra_config}
   extraVolumes: ${server_extra_volumes}
   extraContainers: []
@@ -196,10 +192,6 @@ server:
   ports:
     serflan:
       port: 8301
-
-
-
-
 
 client:
   enabled: ${client_enable}
@@ -411,12 +403,6 @@ syncCatalog:
     annotations: ${sync_service_account_annotations}
   resources:
     ${indent(4, sync_resources)}
-    #requests:
-    #  memory: "50Mi"
-    #  cpu: "50m"
-    #limits:
-    #  memory: "50Mi"
-    #  cpu: "50m"
   logLevel: ""
   consulWriteInterval: null
   extraLabels: null

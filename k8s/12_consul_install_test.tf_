@@ -75,7 +75,7 @@ module "eks_consul_installer" {
 # 
 # TLS 통신 확인
 #    > $env:CONSUL_HTTP_ADDR = "https://localhost:8501"
-#    > kubectl get secret --namespace consul consul-consul-ca-cert -o jsonpath="{.data['tls\.crt']}" | base64 --decode > ca.pem
+#    > kubectl get secret --namespace consul consul-consul-ca-cert -o jsonpath="{.data['tls\.crt']}"
 #       LS0tLS1CRUdJTiBDRVJUSUZJQ0FU...
 #    > [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String('LS0tLS1CRUdJTiBDRVJUSUZJQ0FU...'))
 #        -----BEGIN CERTIFICATE-----

@@ -96,7 +96,7 @@ variable "gossip_encryption_key" {
 
 
 #################################################################################
-# global.tls
+# global.tls (RPC Encryption, Server & Client Encryption)
 #################################################################################
 variable "tls_enabled" {
   description = "Enable TLS for the cluster"
@@ -353,6 +353,8 @@ variable "server_service_account_annotations" {
   default     = ""
 }
 
+# Service Mesh Encryption, Connect 만 활성화하면 Built-in CA 가 자동으로 구성되어 Root Certificate 와 Private Key 가 자동으로 생성된다. 
+# 이를 통해 mTLS 통신이 가능하게 된다.
 variable "server_connect_enable" {
   description = "Enable consul connect. When enabled, the bootstrap will configure a default CA which can be tweaked using the Consul API later"
   default     = true

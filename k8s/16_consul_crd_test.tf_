@@ -1,4 +1,4 @@
-# https://developer.hashicorp.com/consul/tutorials/kubernetes/kubernetes-layer7-observability
+# https://developer.hashicorp.com/consul/tutorials/kubernetes/kubernetes-custom-resource-definitions
 
 locals {
   domain     = "consul"
@@ -30,7 +30,7 @@ module "eks_consul_installer_test" {
   #################################################################################
   # client
   #################################################################################
-  client_enable             = true
+  client_enable = true
 
   #################################################################################
   # connectInject
@@ -41,9 +41,10 @@ module "eks_consul_installer_test" {
   #################################################################################
   # Monitoring
   #################################################################################
-  enable_prometheus = true
-  enable_grafana    = true
+  #enable_prometheus = true
+  #enable_grafana    = true
 }
+
 
 #################################################################################
 # Frontend
@@ -60,26 +61,6 @@ spec:
 YAML
   depends_on = [
     module.eks_consul_installer_test
-  ]
-}
-
-resource "kubectl_manifest" "service_intention_front" {
-  yaml_body = <<YAML
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceIntentions
-metadata:
-  name: frontend-to-public-api
-spec:
-  destination:
-    name: public-api
-  sources:
-    - name: frontend
-      action: allow
-YAML
-  depends_on = [
-    module.eks_consul_installer_test,
-    kubernetes_service_v1.frontend,
-    kubernetes_service_v1.public_api
   ]
 }
 
@@ -243,12 +224,12 @@ YAML
 resource "kubernetes_service_account_v1" "postgres" {
   metadata {
     name = "postgres"
-  } 
+  }
 
   automount_service_account_token = true
   depends_on = [
     module.eks_consul_installer_test
-  ]  
+  ]
 }
 
 
@@ -278,7 +259,7 @@ resource "kubernetes_service_v1" "postgres" {
     kubectl_manifest.service_default_postgres
   ]
 }
- 
+
 resource "kubectl_manifest" "postgres" {
   yaml_body = <<YAML
 apiVersion: apps/v1
@@ -320,7 +301,7 @@ spec:
           emptyDir: {}
 YAML
   depends_on = [
-    module.eks_consul_installer_test 
+    module.eks_consul_installer_test
   ]
 }
 
@@ -433,7 +414,7 @@ YAML
   depends_on = [
     module.eks_consul_installer_test,
     kubectl_manifest.db_configmap
-  ]  
+  ]
 }
 
 resource "kubernetes_service_account_v1" "product_api" {
@@ -469,8 +450,6 @@ resource "kubernetes_service_v1" "product_api" {
     kubectl_manifest.service_default_product
   ]
 }
-
- 
 
 #################################################################################
 # Public API
@@ -508,6 +487,7 @@ YAML
     kubernetes_service_v1.product_api
   ]
 }
+
 
 resource "kubernetes_service_account_v1" "public_api" {
   metadata {
@@ -583,7 +563,72 @@ YAML
     module.eks_consul_installer_test
   ]
 }
- 
+
+#################################################################################
+# Service Intention Test
+#################################################################################
+/*
+resource "kubectl_manifest" "service_intention_front" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: frontend-to-public-api
+spec:
+  destination:
+    name: public-api
+  sources:
+    - name: frontend
+      action: allow
+YAML
+  depends_on = [
+    module.eks_consul_installer_test,
+    kubernetes_service_v1.frontend,
+    kubernetes_service_v1.public_api
+  ]
+}
+*/
+
+#  클라이언트가 Authorization 헤더를 전달해야함
+#  허용 메서드는 "/" 경로에 대해  GET, PUT, POST 및 DELETE HTTP 메서드만 허용
+#  "/health" 경로에 대해서는 접근 허용하지 않음
+resource "kubectl_manifest" "service_intention_front" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: frontend-to-public-api
+spec:
+  destination:
+    name: public-api
+  sources:
+    - name: frontend
+      permissions:
+        - action: deny
+          http:
+            pathExact: '/health'
+        - action: allow
+          http:
+            pathPrefix: '/'
+            methods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+            header:
+              - name: 'Authorization'
+                present: true
+        - action: deny
+          http:
+            pathPrefix: '/'
+YAML
+  depends_on = [
+    module.eks_consul_installer_test,
+    kubernetes_service_v1.frontend,
+    kubernetes_service_v1.public_api
+  ]
+}
+######################################################################
 
 # Check Result
 #    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
@@ -594,19 +639,9 @@ YAML
 #     kubectl port-forward deploy/frontend 8080:80 
 #     http://localhost:8080 
 #
-# UI 활성화 확인
+# UI 에서 Intention 확인
 #    kubectl port-forward service/consul-server 8500:8500 -n consul
 #    http://localhost:8500/ui/dc1/services
-#
-# Promethues 확인
-#    kubectl port-forward deploy/prometheus-server 9090:9090
-#    http://localhost:9090
-#    sum by(__name__)({app="product-api"})!= 0
-#
-# Grafana
-#    kubectl port-forward svc/grafana 3000:3000   
-#    http://localhost:3000
-#    Username : admin Password: password
 #
 # 정리
 #  terraform destroy --auto-approve
