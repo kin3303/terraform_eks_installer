@@ -14,7 +14,7 @@ module "eks_consul_installer_test" {
   #################################################################################
   # General
   consul_domain     = local.domain
-  server_datacenter = local.datacenter
+  consul_datacenter = local.datacenter
   chart_namespace   = local.namespace
   create_namespace  = true
 

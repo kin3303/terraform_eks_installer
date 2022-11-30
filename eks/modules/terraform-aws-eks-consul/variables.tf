@@ -1,3 +1,6 @@
+#################################################################################
+# Chart
+#################################################################################
 variable "release_name" {
   description = "Helm release name for Consul"
   default     = "consul"
@@ -23,36 +26,38 @@ variable "chart_namespace" {
   default     = "default"
 }
 
-
 variable "create_namespace" {
   description = " Create the namespace if it does not yet exist"
   default     = false
 }
-
 
 variable "chart_timeout" {
   description = "Timeout to wait for the Chart to be deployed. The chart waits for all Daemonset pods to be healthy before ending. Increase this for larger clusers to avoid timeout"
   default     = 600
 }
 
+variable "max_history" {
+  description = "Max History for Helm"
+  default     = 20
+}
+
+variable "additional_chart_values" {
+  description = "Additional values for the Consul Helm Chart in YAML"
+  type        = list(string)
+  default     = []
+}
+
+#################################################################################
+# global
+#################################################################################
 variable "name" {
   description = "Sets the prefix used for all resources in the helm chart. If not set, the prefix will be \"<helm release name>-consul\"."
   default     = "consul"
 }
 
-variable "fullname_override" {
-  description = "Fullname Override of Helm resources"
-  default     = ""
-}
-
 variable "log_json_enable" {
   description = "Enable all component logs to be output in JSON format"
   default     = false
-}
-
-variable "max_history" {
-  description = "Max History for Helm"
-  default     = 20
 }
 
 variable "consul_domain" {
@@ -65,13 +70,166 @@ variable "pod_security_policy_enable" {
   default     = true
 }
 
+variable "consul_datacenter" {
+  description = "(Required) Datacenter to configure Consul as."
+}
+
+
+variable "consul_recursors" {
+  description = "A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries."
+  type        = list(string)
+  default     = []
+}
+
+#################################################################################
+# global.gossipEncryption
+#################################################################################
+variable "gossip_enable_auto_generate" {
+  description = "Automatically generate a gossip encryption key and save it to a Kubernetes or Vault secret."
+  default     = false
+}
+
+variable "gossip_encryption_key" {
+  description = "32 Bytes Base64 Encoded Consul Gossip Encryption Key. Set to `null` to disable"
+  default     = null
+}
+
+
+#################################################################################
+# global.tls
+#################################################################################
+variable "tls_enabled" {
+  description = "Enable TLS for the cluster"
+  default     = true
+}
+
+variable "tls_server_additional_dns_sans" {
+  description = "List of additional DNS names to set as Subject Alternative Names (SANs) in the server certificate. This is useful when you need to access the Consul server(s) externally, for example, if you're using the UI."
+  default     = []
+}
+
+variable "tls_server_additional_ip_sans" {
+  description = "List of additional IP addresses to set as Subject Alternative Names (SANs) in the server certificate. This is useful when you need to access Consul server(s) externally, for example, if you're using the UI."
+  default     = []
+}
+
+variable "tls_verify" {
+  description = <<EOF
+If true, 'verify_outgoing', 'verify_server_hostname', and
+'verify_incoming_rpc' will be set to true for Consul servers and clients.
+Set this to false to incrementally roll out TLS on an existing Consul cluster.
+Note: remember to switch it back to true once the rollout is complete.
+Please see this guide for more details:
+https://learn.hashicorp.com/consul/security-networking/certificates
+EOF
+
+  default = true
+}
+
+variable "tls_https_only" {
+  description = "If true, Consul will disable the HTTP port on both clients and servers and only accept HTTPS connections."
+  default     = true
+}
+
+variable "tls_enable_auto_encrypt" {
+  description = "Enable auto encrypt. Uses the connect CA to distribute certificates to clients"
+  default     = false
+}
+
+variable "tls_ca_cert" {
+  description = "Self generated CA path for Consul Server TLS. Values should be PEM encoded"
+  default     = ""
+}
+
+variable "tls_ca_cert_key" {
+  description = "Self generated CA path for Consul Server TLS. Values should be PEM encoded"
+  default     = ""
+}
+
+
+variable "tls_server_cert" {
+  description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
+  default     = ""
+}
+
+variable "tls_server_cert_key" {
+  description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
+  default     = ""
+}
+
+#################################################################################
+# global.acl
+#################################################################################
+variable "manage_system_acls" {
+  description = "Manager ACL Tokens for Consul and consul-k8s components"
+  type        = bool
+  default     = false
+}
+
+variable "acl_bootstrap_token" {
+  description = "Use an existing bootstrap token and the consul-k8s will not bootstrap anything"
+  type = object({
+    secret_name = string
+    secret_key  = string
+  })
+  default = {
+    secret_name = null
+    secret_key  = null
+  }
+}
+
+variable "create_replication_token" {
+  description = "If true, an ACL token will be created that can be used in secondary datacenters for replication. This should only be set to true in the primary datacenter since the replication token must be created from that datacenter. In secondary datacenters, the secret needs to be imported from the primary datacenter"
+  type        = bool
+  default     = false
+}
+
+variable "replication_token" {
+  description = "A secret containing the replication ACL token."
+  type = object({
+    secret_name = string
+    secret_key  = string
+  })
+  default = {
+    secret_name = null
+    secret_key  = null
+  }
+}
+
+variable "acl_tolerations" {
+  description = " tolerations configures the taints and tolerations for the server-acl-init"
+  default     = ""
+}
+
+#################################################################################
+# global.metrics
+#################################################################################
+variable "metrics_enabled" {
+  description = "Configures the Helm chart’s components to expose Prometheus metrics for the Consul service mesh."
+  default     = false
+}
+
+variable "enable_agent_metrics" {
+  description = "Configures consul agent metrics."
+  default     = false
+}
+
+variable "agent_metrics_retention_time" {
+  description = "Configures the retention time for metrics in Consul clients and servers. This must be greater than 0 for Consul clients and servers to expose any metrics at all."
+  default     = "1m"
+}
+
+variable "enable_gateway_metrics" {
+  description = "If true, mesh, terminating, and ingress gateways will expose their Envoy metrics on port `20200` at the `/metrics` path and all gateway pods will have Prometheus scrape annotations."
+  default     = true
+}
+
+#################################################################################
+# server
+#################################################################################
 variable "server_replicas" {
   description = "Number of server replicas to run"
   default     = 1
-}
-
-variable "server_datacenter" {
-  description = "(Required) Datacenter to configure Consul as."
 }
 
 variable "server_storage" {
@@ -140,7 +298,6 @@ EOF
 
 }
 
-
 variable "server_tolerations" {
   description = "A YAML string that can be templated via helm specifying the tolerations for server pods"
   default     = ""
@@ -173,7 +330,14 @@ variable "server_service_account_annotations" {
   default     = ""
 }
 
+variable "server_connect_enable" {
+  description = "Enable consul connect. When enabled, the bootstrap will configure a default CA which can be tweaked using the Consul API later"
+  default     = true
+}
 
+#################################################################################
+# client
+#################################################################################
 variable "client_enable" {
   description = "Enable consul client"
   default     = false
@@ -245,6 +409,9 @@ variable "client_priority_class" {
   default     = ""
 }
 
+#################################################################################
+# sync
+#################################################################################
 variable "enable_sync_catalog" {
   description = "Enable Service catalog sync: https://www.consul.io/docs/platform/k8s/service-sync.html"
   default     = false
@@ -337,6 +504,9 @@ variable "sync_acl_token" {
   }
 }
 
+#################################################################################
+# ui
+#################################################################################
 variable "ui_service_type" {
   description = "Type of service for Consul UI"
   default     = "ClusterIP"
@@ -344,7 +514,7 @@ variable "ui_service_type" {
 
 variable "ui_annotations" {
   description = "UI service annotations"
-  default     =  null
+  default     = null
 }
 
 variable "ui_additional_spec" {
@@ -352,70 +522,19 @@ variable "ui_additional_spec" {
   default     = null
 }
 
-variable "consul_recursors" {
-  description = "A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries."
-  type        = list(string)
-  default     = []
+variable "ui_metrics_provider" {
+  description = "Provider for metrics. See https://www.consul.io/docs/agent/options#ui_config_metrics_provider"
+  default     = "prometheus"
 }
 
-variable "additional_chart_values" {
-  description = "Additional values for the Consul Helm Chart in YAML"
-  type        = list(string)
-  default     = []
-}
-
-#################################################################################
-# ACL
-#################################################################################
-variable "manage_system_acls" {
-  description = "Manager ACL Tokens for Consul and consul-k8s components"
-  type        = bool
-  default     = false
-}
-
-variable "acl_bootstrap_token" {
-  description = "Use an existing bootstrap token and the consul-k8s will not bootstrap anything"
-  type = object({
-    secret_name = string
-    secret_key  = string
-  })
-  default = {
-    secret_name = null
-    secret_key  = null
-  }
-}
-
-variable "create_replication_token" {
-  description = "If true, an ACL token will be created that can be used in secondary datacenters for replication. This should only be set to true in the primary datacenter since the replication token must be created from that datacenter. In secondary datacenters, the secret needs to be imported from the primary datacenter"
-  type        = bool
-  default     = false
-}
-
-variable "replication_token" {
-  description = "A secret containing the replication ACL token."
-  type = object({
-    secret_name = string
-    secret_key  = string
-  })
-  default = {
-    secret_name = null
-    secret_key  = null
-  }
-}
-
-variable "acl_tolerations" {
-  description = " tolerations configures the taints and tolerations for the server-acl-init"
-  default     = ""
+variable "ui_metrics_base_url" {
+  description = "URL of the prometheus server, usually the service URL."
+  default     = "http://prometheus-server"
 }
 
 #################################################################################
-# Consul Connect
+# connectInject
 #################################################################################
-variable "connect_enable" {
-  description = "Enable consul connect. When enabled, the bootstrap will configure a default CA which can be tweaked using the Consul API later"
-  default     = false
-}
-
 variable "enable_connect_inject" {
   description = "Enable Connect Injector process"
   default     = true
@@ -556,364 +675,6 @@ variable "connect_inject_override_auth_method_name" {
   default     = ""
 }
 
-#################################################################################
-# Transparent Proxy
-#################################################################################
-variable "transparent_proxy_default_enabled" {
-  description = "Enable transparent proxy by default on all connect injected pods"
-  type        = bool
-  default     = true
-}
-
-variable "transparent_proxy_default_overwrite_probes" {
-  description = "Overwrite HTTP probes by default when transparent proxy is in use"
-  type        = bool
-  default     = true
-}
-
-#################################################################################
-# Consul Configuration Entries CRD Controller
-#################################################################################
-variable "controller_enable" {
-  description = "Enable Consul Configuration Entries CRD Controller"
-  default     = false
-}
-
-variable "controller_replicas" {
-  description = "Number of replicas for the CRD controller"
-  type        = number
-  default     = 1
-}
-
-variable "controller_log_level" {
-  description = "CRD Controller Log level."
-  default     = ""
-}
-
-variable "controller_resources" {
-  description = "CRD Controller resources"
-  default = {
-    requests = {
-      cpu    = "100m"
-      memory = "50Mi"
-    }
-    limits = {
-      cpu    = "150m"
-      memory = "100Mi"
-    }
-  }
-}
-
-variable "controller_node_selector" {
-  description = "YAML string for Controller Node Selector"
-  default     = null
-}
-
-variable "controller_node_tolerations" {
-  description = "YAML string for Controller tolerations"
-  default     = null
-}
-
-variable "controller_node_affinity" {
-  description = "YAML string for Controller affinity"
-  default     = null
-}
-
-variable "controller_priority_class" {
-  description = "Priority class for Controller pods"
-  default     = ""
-}
-
-variable "controller_service_account_annotations" {
-  description = "YAML string with annotations for CRD Controller service account"
-  type        = string
-  default     = ""
-}
-
-variable "controller_acl_token" {
-  description = "Secret containing ACL token if ACL is enabled and manage_system_acls is not enabled"
-  type = object({
-    secret_name = string
-    secret_key  = string
-  })
-  default = {
-    secret_name = null
-    secret_key  = null
-  }
-}
-
-
-#################################################################################
-# Consul Connect Ingress Gateway
-#################################################################################
-variable "ingress_gateway_enable" {
-  description = "Deploy Ingress Gateways. Requires `connectInject.enabled=true` and `client.enabled=true`."
-  type        = bool
-  default     = false
-}
-
-variable "ingress_gateway_defaults" {
-  description = <<-EOF
-    Defaults sets default values for all gateway fields. With the exception
-    of annotations, defining any of these values in the `gateways` list
-    will override the default values provided here. Annotations will
-    include both the default annotations and any additional ones defined
-    for a specific gateway.
-  EOF
-
-  default = {
-    replicas = 1
-    service = {
-      type = "ClusterIP"
-      ports = [
-        {
-          "nodePort" = null
-          "port"     = 8080
-        },
-        {
-          "nodePort" = null
-          "port"     = 8443
-        }
-      ]
-      annotations    = null
-      additionalSpec = null
-    }
-    serviceAccount = {
-      annotations = null
-    }
-    resources = {
-      limits = {
-        cpu    = "100m"
-        memory = "100Mi"
-      }
-      requests = {
-        cpu    = "100m"
-        memory = "100Mi"
-      }
-    }
-    affinity                      = null
-    tolerations                   = null
-    topologySpreadConstraints     = ""
-    nodeSelector                  = null
-    priorityClassName             = ""
-    terminationGracePeriodSeconds = 10
-    annotations                   = null
-    consulNamespace               = "default"
-  }
-}
-
-variable "ingress_gateways" {
-  description = <<-EOF
-    Gateways is a list of gateway objects. The only required field for
-    each is `name`, though they can also contain any of the fields in
-    `defaults`. Values defined here override the defaults except in the
-    case of annotations where both will be applied.
-  EOF
-
-  default = [
-    {
-      name = "ingress-gateway"
-    }
-  ]
-}
-
-
-#################################################################################
-# Consul Connect Terminating Gateway
-#################################################################################
-variable "terminating_gateway_enable" {
-  description = "Deploy Terminating Gateways"
-  type        = bool
-  default     = false
-}
-
-variable "terminating_gateway_defaults" {
-  description = <<-EOF
-    Terminating Gateway defaults.
-    You can override any of these fields under `terminating_gateways`.
-    Annotations are concatenated
-
-    Note: You do not have to specify all of the fields to override them. If you omit them, they will
-    fall back to the defaults for the Helm Chart.
-  EOF
-
-  default = {
-    replicas     = 2
-    extraVolumes = []
-    resources = {
-      requests = {
-        cpu    = "100Mi"
-        memory = "100Mi"
-      }
-      limits = {
-        cpu    = "100Mi"
-        memory = "100Mi"
-      }
-    }
-    initCopyConsulContainer = {
-      resources = {
-        requests = {
-          cpu    = "50m"
-          memory = "25Mi"
-        }
-        limits = {
-          cpu    = "50m"
-          memory = "25Mi"
-        }
-      }
-    }
-    affinity          = <<-EOF
-      podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app: {{ template "consul.name" . }}
-                release: "{{ .Release.Name }}"
-                component: terminating-gateway
-            topologyKey: kubernetes.io/hostname
-      EOF
-    tolerations       = null
-    nodeSelector      = null
-    priorityClassName = ""
-    annotations       = null
-    serviceAccount = {
-      annotations = null
-    }
-    consulNamespace = "default"
-  }
-}
-
-variable "terminating_gateways" {
-  description = <<-EOF
-      Gateways is a list of gateway objects. The only required field for
-      each is `name`, though they can also contain any of the fields in
-      `terminating_gateway_defaults`. Values defined here override the defaults except in the
-      case of annotations where both will be applied.
-    EOF
-
-  default = [
-    {
-      name = "terminating-gateway"
-    }
-  ]
-}
-
-#################################################################################
-# Consul Security
-#################################################################################
-variable "gossip_encryption_key" {
-  description = "32 Bytes Base64 Encoded Consul Gossip Encryption Key. Set to `null` to disable"
-  default     = null
-}
-
-variable "secret_name" {
-  description = "Name of the secret for Consul"
-  default     = "consul"
-}
-
-variable "secret_annotation" {
-  description = "Annotations for the Consul Secret"
-  default     = {}
-}
-
-variable "tls_enabled" {
-  description = "Enable TLS for the cluster"
-  default     = true
-}
-
-variable "tls_server_additional_dns_sans" {
-  description = "List of additional DNS names to set as Subject Alternative Names (SANs) in the server certificate. This is useful when you need to access the Consul server(s) externally, for example, if you're using the UI."
-  default     = []
-}
-
-variable "tls_server_additional_ip_sans" {
-  description = "List of additional IP addresses to set as Subject Alternative Names (SANs) in the server certificate. This is useful when you need to access Consul server(s) externally, for example, if you're using the UI."
-  default     = []
-}
-
-variable "tls_verify" {
-  description = <<EOF
-If true, 'verify_outgoing', 'verify_server_hostname', and
-'verify_incoming_rpc' will be set to true for Consul servers and clients.
-Set this to false to incrementally roll out TLS on an existing Consul cluster.
-Note: remember to switch it back to true once the rollout is complete.
-Please see this guide for more details:
-https://learn.hashicorp.com/consul/security-networking/certificates
-EOF
-
-  default = true
-}
-
-variable "tls_https_only" {
-  description = "If true, Consul will disable the HTTP port on both clients and servers and only accept HTTPS connections."
-  default     = true
-}
-
-variable "tls_enable_auto_encrypt" {
-  description = "Enable auto encrypt. Uses the connect CA to distribute certificates to clients"
-  default     = false
-}
-
-variable "gossip_enable_auto_generate" {
-  description = "Automatically generate a gossip encryption key and save it to a Kubernetes or Vault secret."
-  default     = false
-}
-
-variable "tls_ca_cert" {
-  description = "Self generated CA path for Consul Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-
-variable "tls_ca_cert_key" {
-  description = "Self generated CA path for Consul Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-
-variable "tls_server_cert" {
-  description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-variable "tls_server_cert_key" {
-  description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-#################################################################################
-# Consul Connect Metrics
-#################################################################################
-variable "metrics_enabled" {
-  description = "Configures the Helm chart’s components to expose Prometheus metrics for the Consul service mesh."
-  default     = false
-}
-
-variable "enable_agent_metrics" {
-  description = "Configures consul agent metrics."
-  default     = false
-}
-
-variable "agent_metrics_retention_time" {
-  description = "Configures the retention time for metrics in Consul clients and servers. This must be greater than 0 for Consul clients and servers to expose any metrics at all."
-  default     = "1m"
-}
-
-variable "enable_gateway_metrics" {
-  description = "If true, mesh, terminating, and ingress gateways will expose their Envoy metrics on port `20200` at the `/metrics` path and all gateway pods will have Prometheus scrape annotations."
-  default     = true
-}
-
-variable "ui_metrics_provider" {
-  description = "Provider for metrics. See https://www.consul.io/docs/agent/options#ui_config_metrics_provider"
-  default     = "prometheus"
-}
-
-variable "ui_metrics_base_url" {
-  description = "URL of the prometheus server, usually the service URL."
-  default     = "http://prometheus-server"
-}
-
 variable "connect_inject_default_enable_merging" {
   description = "Configures the Consul sidecar to run a merged metrics server to combine and serve both Envoy and Connect service metrics. This feature is available only in Consul v1.10-alpha or greater."
   default     = false
@@ -954,6 +715,53 @@ variable "connect_inject_service_account_annotations" {
   default     = ""
 }
 
+
+#################################################################################
+# connectInject.transparentProxy
+################################################################################# 
+variable "transparent_proxy_default_enabled" {
+  description = "Enable transparent proxy by default on all connect injected pods"
+  type        = bool
+  default     = true
+}
+
+variable "transparent_proxy_default_overwrite_probes" {
+  description = "Overwrite HTTP probes by default when transparent proxy is in use"
+  type        = bool
+  default     = true
+}
+ 
+#################################################################################
+# ingressGateways
+#################################################################################
+variable "ingress_gateway_enable" {
+  description = "Deploy Ingress Gateways. Requires `connectInject.enabled=true` and `client.enabled=true`."
+  type        = bool
+  default     = false
+}
+
+#################################################################################
+# terminatingGateways
+#################################################################################
+variable "terminating_gateway_enable" {
+  description = "Deploy Terminating Gateways"
+  type        = bool
+  default     = false
+}
+ 
+#################################################################################
+# Etc
+#################################################################################
+variable "secret_name" {
+  description = "Name of the secret for Consul"
+  default     = "consul"
+}
+
+variable "secret_annotation" {
+  description = "Annotations for the Consul Secret"
+  default     = {}
+}
+
 variable "enable_prometheus" {
   description = "When true, the Helm chart will install Prometheus server instance alongside Consul."
   default     = false
@@ -963,3 +771,4 @@ variable "enable_grafana" {
   description = "When true, the Helm chart will install Grtafana server instance alongside Consul."
   default     = false
 }
+

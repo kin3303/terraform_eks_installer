@@ -38,61 +38,22 @@ locals {
   chart_values = templatefile("${path.module}/templates/values.yaml", local.consul_values)
 
   consul_values = {
-    name = var.name != null ? var.name : "null"
-
-    pod_security_policy_enable = var.pod_security_policy_enable
+    ###########################################################################
+    # global
+    ###########################################################################
     log_json_enable            = var.log_json_enable
+    name                       = var.name != null ? var.name : "null"
+    consul_domain              = var.consul_domain
+    consul_datacenter          = var.consul_datacenter
+    pod_security_policy_enable = var.pod_security_policy_enable
+    consul_recursors           = jsonencode(var.consul_recursors)
 
+    # global.gossipEncryption
     gossip_enable_auto_generate = var.gossip_enable_auto_generate
     gossip_secret               = var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : ""
     gossip_key                  = var.gossip_encryption_key != null ? "gossip" : ""
 
-    datacenter = var.server_datacenter
-
-    consul_domain                      = var.consul_domain
-    server_replicas                    = var.server_replicas
-    server_storage                     = var.server_storage
-    server_storage_class               = var.server_storage_class # kubernetes_storage_class_v1.efs_sc.metadata[0].name
-    server_resources                   = yamlencode(var.server_resources)
-    server_extra_config                = jsonencode(jsonencode(var.server_extra_config))
-    server_extra_volumes               = jsonencode(var.server_extra_volumes)
-    server_affinity                    = jsonencode(var.server_affinity)
-    server_tolerations                 = jsonencode(var.server_tolerations)
-    server_priority_class              = var.server_priority_class
-    server_annotations                 = jsonencode(var.server_annotations)
-    consul_recursors                   = jsonencode(var.consul_recursors)
-    server_service_account_annotations = jsonencode(var.server_service_account_annotations)
-    server_topology_spread_constraints = jsonencode(var.server_topology_spread_constraints)
-    server_update_partition            = var.server_update_partition
-
-    manage_system_acls = var.manage_system_acls
-    acl_bootstrap_token = yamlencode({
-      secretName = var.acl_bootstrap_token.secret_name
-      secretKey  = var.acl_bootstrap_token.secret_key
-    })
-    create_replication_token = var.create_replication_token
-    replication_token = yamlencode({
-      secretName = var.replication_token.secret_name
-      secretKey  = var.replication_token.secret_key
-    })
-    acl_tolerations = jsonencode(var.acl_tolerations)
-
-    client_enable         = var.client_enable
-    client_grpc           = var.client_grpc
-    client_resources      = yamlencode(var.client_resources)
-    client_extra_config   = jsonencode(jsonencode(var.client_extra_config))
-    client_extra_volumes  = jsonencode(var.client_extra_volumes)
-    client_affinity       = var.client_affinity != null ? jsonencode(var.client_affinity) : "null"
-    client_tolerations    = jsonencode(var.client_tolerations)
-    client_priority_class = var.client_priority_class
-    client_annotations    = jsonencode(var.client_annotations)
-    client_labels         = jsonencode(var.client_labels)
-
-    client_service_account_annotations = jsonencode(var.client_service_account_annotations)
-
-    server_security_context = jsonencode(var.server_security_context)
-    client_security_context = jsonencode(var.client_security_context)
-
+    # global.tls
     tls_enabled                    = var.tls_enabled
     tls_server_additional_dns_sans = jsonencode(var.tls_server_additional_dns_sans)
     tls_server_additional_ip_sans  = jsonencode(var.tls_server_additional_ip_sans)
@@ -105,6 +66,63 @@ locals {
     tls_cakey_secret_key           = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.key" : "null"
     tls_server_cert_secret         = var.tls_server_cert != "" && var.tls_server_cert_key != "" ? kubernetes_secret.server_certificate[0].metadata[0].name : "null"
 
+    # global.acl
+    manage_system_acls = var.manage_system_acls
+    acl_bootstrap_token = yamlencode({
+      secretName = var.acl_bootstrap_token.secret_name
+      secretKey  = var.acl_bootstrap_token.secret_key
+    })
+    create_replication_token = var.create_replication_token
+    replication_token = yamlencode({
+      secretName = var.replication_token.secret_name
+      secretKey  = var.replication_token.secret_key
+    })
+    acl_tolerations = jsonencode(var.acl_tolerations)
+
+    # global.metrics
+    metrics_enabled              = var.metrics_enabled
+    enable_agent_metrics         = var.enable_agent_metrics
+    agent_metrics_retention_time = var.agent_metrics_retention_time
+    enable_gateway_metrics       = var.enable_gateway_metrics
+
+    ###########################################################################
+    # server
+    ###########################################################################
+    server_replicas                    = var.server_replicas
+    server_storage                     = var.server_storage
+    server_storage_class               = var.server_storage_class # kubernetes_storage_class_v1.efs_sc.metadata[0].name
+    server_resources                   = yamlencode(var.server_resources)
+    server_connect_enable              = var.server_connect_enable
+    server_extra_config                = jsonencode(jsonencode(var.server_extra_config))
+    server_extra_volumes               = jsonencode(var.server_extra_volumes)
+    server_affinity                    = jsonencode(var.server_affinity)
+    server_tolerations                 = jsonencode(var.server_tolerations)
+    server_priority_class              = var.server_priority_class
+    server_annotations                 = jsonencode(var.server_annotations)
+    server_service_account_annotations = jsonencode(var.server_service_account_annotations)
+    server_topology_spread_constraints = jsonencode(var.server_topology_spread_constraints)
+    server_update_partition            = var.server_update_partition
+    server_security_context            = jsonencode(var.server_security_context)
+
+    ###########################################################################
+    # client
+    ###########################################################################
+    client_enable                      = var.client_enable
+    client_grpc                        = var.client_grpc
+    client_resources                   = yamlencode(var.client_resources)
+    client_extra_config                = jsonencode(jsonencode(var.client_extra_config))
+    client_extra_volumes               = jsonencode(var.client_extra_volumes)
+    client_affinity                    = var.client_affinity != null ? jsonencode(var.client_affinity) : "null"
+    client_tolerations                 = jsonencode(var.client_tolerations)
+    client_priority_class              = var.client_priority_class
+    client_annotations                 = jsonencode(var.client_annotations)
+    client_labels                      = jsonencode(var.client_labels)
+    client_service_account_annotations = jsonencode(var.client_service_account_annotations)
+    client_security_context            = jsonencode(var.client_security_context)
+
+    ###########################################################################
+    # sync
+    ###########################################################################
     enable_sync_catalog           = jsonencode(var.enable_sync_catalog)
     sync_by_default               = var.sync_by_default
     sync_to_consul                = var.sync_to_consul
@@ -122,76 +140,54 @@ locals {
       secretName = var.sync_acl_token.secret_name
       secretKey  = var.sync_acl_token.secret_key
     })
-
-
     sync_service_account_annotations = jsonencode(var.sync_service_account_annotations)
 
-    ui_service_type    = var.ui_service_type
-    ui_annotations     = jsonencode(var.ui_annotations)
-    ui_additional_spec = jsonencode(var.ui_additional_spec)
-
-    connect_enable                = jsonencode(var.connect_enable)
-    enable_connect_inject         = var.enable_connect_inject
-    connect_inject_replicas       = var.connect_inject_replicas
-    connect_inject_by_default     = var.connect_inject_by_default
-    connect_inject_affinity       = jsonencode(var.connect_inject_affinity)
-    connect_inject_tolerations    = jsonencode(var.connect_inject_tolerations)
-    connect_inject_resources      = jsonencode(var.connect_inject_resources)
-    connect_inject_priority_class = var.connect_inject_priority_class
-
-    connect_inject_namespace_selector = var.connect_inject_namespace_selector != null ? jsonencode(var.connect_inject_namespace_selector) : "null"
-    connect_inject_allowed_namespaces = jsonencode(var.connect_inject_allowed_namespaces)
-    connect_inject_denied_namespaces  = jsonencode(var.connect_inject_denied_namespaces)
-    connect_inject_log_level          = var.connect_inject_log_level
-    connect_inject_failure_policy     = var.connect_inject_failure_policy
-
-    connect_inject_sidecar_proxy_resources = yamlencode(var.connect_inject_sidecar_proxy_resources)
-    connect_inject_init_resources          = yamlencode(var.connect_inject_init_resources)
-    envoy_extra_args                       = var.envoy_extra_args != null ? jsonencode(var.envoy_extra_args) : "null"
-
-    connect_inject_acl_binding_rule_selector = var.connect_inject_acl_binding_rule_selector
-    connect_inject_override_auth_method_name = jsonencode(var.connect_inject_override_auth_method_name)
-
-    controller_enable           = var.controller_enable
-    controller_replicas         = var.controller_replicas
-    controller_log_level        = var.controller_log_level
-    controller_resources        = yamlencode(var.controller_resources)
-    controller_node_selector    = var.controller_node_selector != null ? jsonencode(var.controller_node_selector) : "null"
-    controller_node_tolerations = var.controller_node_tolerations != null ? jsonencode(var.controller_node_tolerations) : "null"
-    controller_node_affinity    = var.controller_node_affinity != null ? jsonencode(var.controller_node_affinity) : "null"
-    controller_priority_class   = var.controller_priority_class
-    controller_acl_token = yamlencode({
-      secretName = var.controller_acl_token.secret_name
-      secretKey  = var.controller_acl_token.secret_key
-    })
-
-    controller_service_account_annotations = jsonencode(var.controller_service_account_annotations)
-
-    transparent_proxy_default_enabled          = var.transparent_proxy_default_enabled
-    transparent_proxy_default_overwrite_probes = var.transparent_proxy_default_overwrite_probes
-
-    ingress_gateway_enable   = var.ingress_gateway_enable
-    ingress_gateway_defaults = yamlencode(var.ingress_gateway_defaults)
-    ingress_gateways         = yamlencode(var.ingress_gateways)
-
-    terminating_gateway_enable   = var.terminating_gateway_enable
-    terminating_gateway_defaults = yamlencode(var.terminating_gateway_defaults)
-    terminating_gateways         = yamlencode(var.terminating_gateways)
-
-    metrics_enabled              = var.metrics_enabled
-    enable_agent_metrics         = var.enable_agent_metrics
-    agent_metrics_retention_time = var.agent_metrics_retention_time
-    enable_gateway_metrics       = var.enable_gateway_metrics
-
+    ###########################################################################
+    # ui
+    ###########################################################################
+    ui_service_type     = var.ui_service_type
+    ui_annotations      = jsonencode(var.ui_annotations)
+    ui_additional_spec  = jsonencode(var.ui_additional_spec)
     ui_metrics_provider = var.ui_metrics_provider
     ui_metrics_base_url = var.ui_metrics_base_url
 
+    ###########################################################################
+    # connectInject
+    ###########################################################################
+    enable_connect_inject                         = var.enable_connect_inject
+    connect_inject_replicas                       = var.connect_inject_replicas
+    connect_inject_by_default                     = var.connect_inject_by_default
+    connect_inject_affinity                       = jsonencode(var.connect_inject_affinity)
+    connect_inject_tolerations                    = jsonencode(var.connect_inject_tolerations)
+    connect_inject_resources                      = jsonencode(var.connect_inject_resources)
+    connect_inject_priority_class                 = var.connect_inject_priority_class
+    connect_inject_namespace_selector             = var.connect_inject_namespace_selector != null ? jsonencode(var.connect_inject_namespace_selector) : "null"
+    connect_inject_allowed_namespaces             = jsonencode(var.connect_inject_allowed_namespaces)
+    connect_inject_denied_namespaces              = jsonencode(var.connect_inject_denied_namespaces)
+    connect_inject_log_level                      = var.connect_inject_log_level
+    connect_inject_failure_policy                 = var.connect_inject_failure_policy
+    connect_inject_sidecar_proxy_resources        = yamlencode(var.connect_inject_sidecar_proxy_resources)
+    connect_inject_init_resources                 = yamlencode(var.connect_inject_init_resources)
+    envoy_extra_args                              = var.envoy_extra_args != null ? jsonencode(var.envoy_extra_args) : "null"
+    connect_inject_acl_binding_rule_selector      = var.connect_inject_acl_binding_rule_selector
+    connect_inject_override_auth_method_name      = jsonencode(var.connect_inject_override_auth_method_name)
+    transparent_proxy_default_enabled             = var.transparent_proxy_default_enabled
+    transparent_proxy_default_overwrite_probes    = var.transparent_proxy_default_overwrite_probes
     connect_inject_default_enable_merging         = var.connect_inject_default_enable_merging
     connect_inject_default_merged_metrics_port    = var.connect_inject_default_merged_metrics_port
     connect_inject_default_prometheus_scrape_port = var.connect_inject_default_prometheus_scrape_port
     connect_inject_default_prometheus_scrape_path = var.connect_inject_default_prometheus_scrape_path
+    connect_inject_service_account_annotations    = jsonencode(var.connect_inject_service_account_annotations)
 
-    connect_inject_service_account_annotations = jsonencode(var.connect_inject_service_account_annotations)
+    ###########################################################################
+    # ingressGateways
+    ###########################################################################
+    ingress_gateway_enable = var.ingress_gateway_enable
+
+    ###########################################################################
+    # terminatingGateway
+    ###########################################################################
+    terminating_gateway_enable = var.terminating_gateway_enable
   }
 }
 
@@ -251,4 +247,3 @@ resource "kubernetes_secret" "server_certificate" {
     "tls.key" = file(var.tls_server_cert_key)
   }
 }
-

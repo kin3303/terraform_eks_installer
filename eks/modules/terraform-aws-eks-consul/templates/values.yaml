@@ -12,7 +12,7 @@ global:
   image: "hashicorp/consul:1.14.1"
   imagePullSecrets: []
   imageK8S: hashicorp/consul-k8s-control-plane:1.0.1
-  datacenter: ${datacenter}
+  datacenter: ${consul_datacenter}
   enablePodSecurityPolicies: ${pod_security_policy_enable}
   secretsBackend:
     vault:
@@ -118,83 +118,86 @@ global:
 
 server:
   enabled: "-"
-#  image: null  
+  image: null  
   replicas: ${server_replicas}
-#  bootstrapExpect: null
-#  serverCert:
-#    secretName: ${tls_server_cert_secret}
-#  exposeGossipAndRPCPorts: false
-#  ports:
-#    serflan:
-#      port: 8301
-#  storage: ${server_storage} #10Gi
-#  storageClass: ${server_storage_class} #null
-#  connect: ${connect_enable} #true
-#  serviceAccount:
-#    annotations: ${server_service_account_annotations} #null
-#  resources:
-#    requests:
-#      memory: "100Mi"
-#      cpu: "100m"
-#    limits:
-#      memory: "100Mi"
-#      cpu: "100m"
-#  securityContext:
-#    runAsNonRoot: true
-#    runAsGroup: 1000
-#    runAsUser: 100
-#    fsGroup: 1000
-#  containerSecurityContext:
-#    server: null
-#  updatePartition: ${server_update_partition}
-#  disruptionBudget:
-#    enabled: true
-#    maxUnavailable: null
-#  extraConfig: ${server_extra_config}
-#  extraVolumes: ${server_extra_volumes}
-#  extraContainers: []
-#  affinity: |
-#    podAntiAffinity:
-#      requiredDuringSchedulingIgnoredDuringExecution:
-#        - labelSelector:
-#            matchLabels:
-#              app: {{ template "consul.name" . }}
-#              release: "{{ .Release.Name }}"
-#              component: server
-#          topologyKey: kubernetes.io/hostname
-#  tolerations: ${server_tolerations}
-#  topologySpreadConstraints: ${server_topology_spread_constraints}
-#  nodeSelector: null
-#  priorityClassName:  ${server_priority_class}
-#  extraLabels: null
-#  annotations: ${server_annotations}
-#  exposeService:
-#    enabled: "-"
-#    type: LoadBalancer
-#    nodePort:
-#      http: null
-#      https: null
-#      serf: null
-#      rpc: null
-#      grpc: null
-#    annotations: null
-#  service:
-#    annotations: null
-#  extraEnvironmentVars: {}
-#  snapshotAgent:
-#    enabled: false
-#    interval: 1h
-#    configSecret:
-#      secretName: null
-#      secretKey: null
-#    resources:
-#      requests:
-#        memory: "50Mi"
-#        cpu: "50m"
-#      limits:
-#        memory: "50Mi"
-#        cpu: "50m"
-#    caCert: null
+  bootstrapExpect: null
+  serverCert:
+    secretName: ${tls_server_cert_secret}
+  resources:
+    requests:
+      memory: "200Mi"
+      cpu: "200m"
+    limits:
+      memory: "200Mi"
+      cpu: "200m"
+  securityContext:
+    ${indent(4, server_security_context)}
+    #runAsNonRoot: true
+    #runAsGroup: 1000
+    #runAsUser: 100
+    #fsGroup: 1000
+  containerSecurityContext:
+    server: null
+  updatePartition: ${server_update_partition}
+  disruptionBudget:
+    enabled: true
+    maxUnavailable: null
+  storage: ${server_storage}
+  storageClass: ${server_storage_class} 
+  serviceAccount:
+    annotations: ${server_service_account_annotations}
+  connect: ${server_connect_enable}
+  extraConfig: ${server_extra_config}
+  extraVolumes: ${server_extra_volumes}
+  extraContainers: []
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: {{ template "consul.name" . }}
+              release: "{{ .Release.Name }}"
+              component: server
+          topologyKey: kubernetes.io/hostname
+  tolerations: ${server_tolerations}
+  topologySpreadConstraints: ${server_topology_spread_constraints}
+  nodeSelector: null
+  priorityClassName:  ${server_priority_class}
+  extraLabels: null
+  annotations: ${server_annotations}
+  exposeService:
+    enabled: "-"
+    type: LoadBalancer
+    nodePort:
+      http: null
+      https: null
+      serf: null
+      rpc: null
+      grpc: null
+    annotations: null
+  service:
+    annotations: null
+  extraEnvironmentVars: {}
+  snapshotAgent:
+    enabled: false
+    interval: 1h
+    configSecret:
+      secretName: null
+      secretKey: null
+    resources:
+      requests:
+        memory: "50Mi"
+        cpu: "50m"
+      limits:
+        memory: "50Mi"
+        cpu: "50m"
+    caCert: null
+  exposeGossipAndRPCPorts: false
+  ports:
+    serflan:
+      port: 8301
+
+
 
 
 
@@ -269,8 +272,8 @@ ui:
     nodePort:
       http: null
       https: null
-    annotations: null
-    additionalSpec: null
+    annotations: ${ui_annotations}
+    additionalSpec: ${ui_additional_spec}
   ingress:
     enabled: false
     ingressClassName: ""
@@ -395,7 +398,7 @@ syncCatalog:
     mirroringK8SPrefix: ""
   addK8SNamespaceSuffix: ${sync_add_k8s_namespace_suffix}
   consulPrefix: null
-  k8sTag: null
+  k8sTag: ${sync_k8s_tag}
   consulNodeName: "k8s-sync"
   syncClusterIPServices: ${sync_cluster_ip_services}
   nodePortSyncType: ${sync_node_port_type}
@@ -407,12 +410,13 @@ syncCatalog:
   serviceAccount:
     annotations: ${sync_service_account_annotations}
   resources:
-    requests:
-      memory: "50Mi"
-      cpu: "50m"
-    limits:
-      memory: "50Mi"
-      cpu: "50m"
+    ${indent(4, sync_resources)}
+    #requests:
+    #  memory: "50Mi"
+    #  cpu: "50m"
+    #limits:
+    #  memory: "50Mi"
+    #  cpu: "50m"
   logLevel: ""
   consulWriteInterval: null
   extraLabels: null
