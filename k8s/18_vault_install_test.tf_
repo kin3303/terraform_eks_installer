@@ -1,5 +1,4 @@
-# https://developer.hashicorp.com/consul/tutorials/kubernetes/kubernetes-vault-consul-secrets-management
-# https://www.hashicorp.com/products/vault/kubernetes
+# https://developer.hashicorp.com/vault/tutorials/kubernetes/kubernetes-minikube-consul
 
 locals { 
   namespace  = "vault" 
@@ -11,7 +10,7 @@ module "eks_vault_installer_test" {
   create_namespace  = true
  
 }
- 
+
 # Check Result
 #    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk 
 # 
@@ -20,8 +19,4 @@ module "eks_vault_installer_test" {
 #    kubectl exec -it vault-0 /bin/sh -n vault
 #    vault status
 #    vault operator init 
-#
-# UI
-#    kubectl port-forward svc/vault-ui --namespace vault 8200:8200
-#    http://localhost:8200
-#    unseal vault
+#    vault operator unseal 
