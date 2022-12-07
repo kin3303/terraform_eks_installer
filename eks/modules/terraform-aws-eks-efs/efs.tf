@@ -5,10 +5,12 @@
 
 resource "helm_release" "efs_controller" {
 
-  name       = "aws-efs-csi-driver"
-  repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver"
-  chart      = "aws-efs-csi-driver"
-  namespace  = "kube-system"
+  name              = "aws-efs-csi-driver"
+  repository        = "https://kubernetes-sigs.github.io/aws-efs-csi-driver"
+  chart             = "aws-efs-csi-driver"
+  namespace         = "kube-system"
+  cleanup_on_fail   = true
+  dependency_update = true
 
   set {
     name  = "image.repository"

@@ -94,6 +94,16 @@ variable "gossip_encryption_key" {
   default     = null
 }
 
+variable "gossip_encryption_secret_name" {
+  description = "The name of the Kubernetes secret or Vault secret path that holds the gossip encryption key."
+  default     = ""
+}
+
+variable "gossip_encryption_secret_key" {
+  description = "The key within the Kubernetes secret or Vault secret key that holds the gossip encryption key."
+  default     = ""
+}
+
 
 #################################################################################
 # global.tls (RPC Encryption, Server & Client Encryption)
@@ -146,6 +156,15 @@ variable "tls_ca_cert_key" {
   default     = ""
 }
 
+variable "tls_cacert_secret_name" {
+  description = "The name of the Kubernetes or Vault secret that holds the CA certificate."
+  default     = ""
+}
+
+variable "tls_cacert_secret_key" {
+  description = "The key within the Kubernetes or Vault secret that holds the CA certificate."
+  default     = ""
+}
 
 variable "tls_server_cert" {
   description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
@@ -156,6 +175,12 @@ variable "tls_server_cert_key" {
   description = "Server certificate path for Consul Server TLS. Values should be PEM encoded"
   default     = ""
 }
+
+variable "tls_server_cert_secret_name" {
+  description = "The name of the Vault secret that holds the PEM encoded server certificate."
+  default     = ""
+}
+
 
 #################################################################################
 # global.acl
@@ -231,10 +256,10 @@ variable "enable_gateway_metrics" {
 #################################################################################
 variable "federation_enable" {
   description = "If enabled, this datacenter will be federation-capable. Only federation via mesh gateways is supported."
-  default = false
+  default     = false
 }
- 
-variable "create_federation_secret" { 
+
+variable "create_federation_secret" {
   description = <<-EOF
     If true, the chart will create a Kubernetes secret that can be imported
     into secondary datacenters so they can federate with this datacenter. The
@@ -244,7 +269,7 @@ variable "create_federation_secret" {
     `<global.name>-federation` (if setting `global.name`), otherwise
     `<helm-release-name>-consul-federation`.
   EOF  
-  default = false
+  default     = false
 }
 
 #################################################################################
@@ -359,6 +384,13 @@ variable "server_connect_enable" {
   description = "Enable consul connect. When enabled, the bootstrap will configure a default CA which can be tweaked using the Consul API later"
   default     = true
 }
+
+variable "server_expose_gossip_and_rpc_ports" {
+  description = "Exposes the servers' gossip and RPC ports as hostPorts"
+  default     = false
+}
+
+
 
 #################################################################################
 # client
@@ -755,7 +787,7 @@ variable "transparent_proxy_default_overwrite_probes" {
   type        = bool
   default     = true
 }
- 
+
 #################################################################################
 # ingressGateways
 #################################################################################
@@ -806,7 +838,7 @@ variable "terminating_gateways" {
 }
 
 
- 
+
 #################################################################################
 # Etc
 #################################################################################
@@ -828,5 +860,53 @@ variable "enable_prometheus" {
 variable "enable_grafana" {
   description = "When true, the Helm chart will install Grtafana server instance alongside Consul."
   default     = false
+}
+
+#################################################################################
+# Secret Backend
+#################################################################################
+variable "vault_ca_additional_config" {
+  description = "Additional Connect CA configuration in JSON format."
+  default     = ""
+}
+
+variable "enable_secret_backend_vault" {
+  description = "Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets."
+  default     = false
+}
+
+variable "vault_consul_server_role" {
+  description = "The Vault role for the Consul server."
+  default     = ""
+}
+
+variable "vault_consul_client_role" {
+  description = "The Vault role for the Consul client."
+  default     = ""
+}
+
+variable "vault_consul_ca_role" {
+  description = "The Vault role for all Consul components to read the Consul's server's CA Certificate."
+  default     = ""
+}
+
+variable "vault_consul_agent_annotation" {
+  description = "The Vault role for all Consul components to read the Consul's server's CA Certificate."
+  default = ""
+}
+
+variable "vault_addr" {
+  description = "The address of the Vault server."
+  default     = ""
+}
+
+variable "vault_root_pki_path" {
+  description = "The path to a PKI secrets engine for the root certificate."
+  default     = ""
+}
+
+variable "vault_intermediate_pki_path" {
+  description = "The path to a PKI secrets engine for the generated intermediate certificate."
+  default     = ""
 }
 

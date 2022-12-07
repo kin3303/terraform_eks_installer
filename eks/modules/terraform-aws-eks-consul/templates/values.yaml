@@ -16,25 +16,25 @@ global:
   enablePodSecurityPolicies: ${pod_security_policy_enable}
   secretsBackend:
     vault:
-      enabled: false
-      consulServerRole: ""
-      consulClientRole: ""
+      enabled:  ${enable_secret_backend_vault}
+      consulServerRole: ${vault_consul_server_role}
+      consulClientRole: ${vault_consul_client_role}
       manageSystemACLsRole: ""
       adminPartitionsRole: ""
       controllerRole: ""
       connectInjectRole: ""
-      consulCARole: ""
-      agentAnnotations: null
+      consulCARole: ${vault_consul_ca_role}
+      agentAnnotations: |
+        "vault.hashicorp.com/namespace": "admin"
       ca:
         secretName: ""
         secretKey: ""
       connectCA:
-        address: ""
+        address: ${vault_addr}
         authMethodPath: "kubernetes"
-        rootPKIPath: ""
-        intermediatePKIPath: ""
-        additionalConfig: |
-          {}
+        rootPKIPath: ${vault_root_pki_path}
+        intermediatePKIPath: ${vault_intermediate_pki_path}
+        additionalConfig:  "{\"connect\": [{ \"ca_config\": [{ \"namespace\": \"admin\"}]}]}"
       controller:
         tlsCert:
           secretName: null
@@ -188,7 +188,7 @@ server:
         memory: "50Mi"
         cpu: "50m"
     caCert: null
-  exposeGossipAndRPCPorts: false
+  exposeGossipAndRPCPorts: ${server_expose_gossip_and_rpc_ports}
   ports:
     serflan:
       port: 8301

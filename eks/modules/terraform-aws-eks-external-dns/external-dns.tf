@@ -4,10 +4,12 @@
 #     https://github.com/kubernetes-sigs/external-dns/blob/master/charts/external-dns/values.yaml
 ###########################################################################
 resource "helm_release" "external_dns" {
-  name       = "external-dns"
-  repository = "https://kubernetes-sigs.github.io/external-dns/"
-  chart      = "external-dns"
-  namespace  = "default"
+  name              = "external-dns"
+  repository        = "https://kubernetes-sigs.github.io/external-dns/"
+  chart             = "external-dns"
+  namespace         = "default"
+  cleanup_on_fail   = true
+  dependency_update = true
 
   set {
     name  = "image.repository"

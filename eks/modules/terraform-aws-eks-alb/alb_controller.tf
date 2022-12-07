@@ -7,10 +7,12 @@
 
 resource "helm_release" "loadbalancer_controller" {
 
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
+  name              = "aws-load-balancer-controller"
+  repository        = "https://aws.github.io/eks-charts"
+  chart             = "aws-load-balancer-controller"
+  namespace         = "kube-system"
+  cleanup_on_fail   = true
+  dependency_update = true
 
   # Region 에 따라 Repository URL 변경 : https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
   set {
@@ -39,7 +41,7 @@ resource "helm_release" "loadbalancer_controller" {
   */
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value =  module.eks_alb_controller_iam_role.iam_role_arn
+    value = module.eks_alb_controller_iam_role.iam_role_arn
   }
 
   set {
@@ -59,5 +61,5 @@ resource "helm_release" "loadbalancer_controller" {
 
   depends_on = [
     module.eks_alb_controller_iam_role
-  ]  
+  ]
 }

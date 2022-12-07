@@ -7,7 +7,8 @@ resource "helm_release" "vault" {
   create_namespace = false
   max_history      = var.max_history
   timeout          = var.chart_timeout
-  cleanup_on_fail  = true
+  cleanup_on_fail   = true
+  dependency_update = true
 
   values = concat([local.chart_values], var.additional_chart_values)
 }

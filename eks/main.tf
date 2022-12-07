@@ -153,3 +153,18 @@ module "eks_logging" {
   ]
 }
 */
+
+
+###########################################################################
+# Vault
+###########################################################################
+module "eks_vault_installer_test" {
+  source           = "../eks/modules/terraform-aws-eks-vault"
+  chart_namespace  = "vault"
+  create_namespace = true
+
+  depends_on = [
+    module.eks
+  ]  
+}
+

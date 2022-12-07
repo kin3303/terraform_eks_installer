@@ -8,12 +8,14 @@
 ###########################################################################
 
 resource "helm_release" "cluster_autoscaler_release" {
-  name             = "cluster-autoscaler" 
-  repository       = "https://kubernetes.github.io/autoscaler"
-  chart            = "cluster-autoscaler"
-  version          = "9.10.8"
-  namespace        = "kube-system"
-  create_namespace = false
+  name              = "cluster-autoscaler"
+  repository        = "https://kubernetes.github.io/autoscaler"
+  chart             = "cluster-autoscaler"
+  version           = "9.10.8"
+  namespace         = "kube-system"
+  create_namespace  = false
+  cleanup_on_fail   = true
+  dependency_update = true
 
   set {
     name  = "cloudProvider"

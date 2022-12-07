@@ -21,15 +21,16 @@
 #         https://www.linkedin.com/pulse/how-easily-setup-consul-service-mesh-aws-eks-ihar-vauchok 
 ###########################################################################
 resource "helm_release" "consul" {
-  name             = var.release_name
-  chart            = var.chart_name
-  repository       = var.chart_repository
-  version          = var.chart_version
-  namespace        = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
-  create_namespace = false
-  max_history      = var.max_history
-  timeout          = var.chart_timeout
-  cleanup_on_fail  = true
+  name              = var.release_name
+  chart             = var.chart_name
+  repository        = var.chart_repository
+  version           = var.chart_version
+  namespace         = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
+  create_namespace  = false
+  max_history       = var.max_history
+  timeout           = var.chart_timeout
+  cleanup_on_fail   = true
+  dependency_update = true
 
   values = concat([local.chart_values], var.additional_chart_values)
 }
@@ -50,8 +51,8 @@ locals {
 
     # global.gossipEncryption
     gossip_enable_auto_generate = var.gossip_enable_auto_generate
-    gossip_secret               = var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : ""
-    gossip_key                  = var.gossip_encryption_key != null ? "gossip" : ""
+    gossip_secret               = var.gossip_encryption_secret_name != "" ?  var.gossip_encryption_secret_name : (var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : "")
+    gossip_key                  = var.gossip_encryption_secret_key != "" ? var.gossip_encryption_secret_key : (var.gossip_encryption_key != null ? "gossip" : "")
 
     # global.tls
     tls_enabled                    = var.tls_enabled
@@ -60,11 +61,11 @@ locals {
     tls_verify                     = var.tls_verify
     tls_https_only                 = var.tls_https_only
     tls_enable_auto_encrypt        = jsonencode(var.tls_enable_auto_encrypt)
-    tls_cacert_secret_name         = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
-    tls_cacert_secret_key          = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.crt" : "null"
+    tls_cacert_secret_name         = var.tls_cacert_secret_name != "" ? var.tls_cacert_secret_name : (var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null")
+    tls_cacert_secret_key          = var.tls_cacert_secret_key != "" ? var.tls_cacert_secret_key : (var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.crt" : "null") 
     tls_cakey_secret_name          = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
     tls_cakey_secret_key           = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.key" : "null"
-    tls_server_cert_secret         = var.tls_server_cert != "" && var.tls_server_cert_key != "" ? kubernetes_secret.server_certificate[0].metadata[0].name : "null"
+    tls_server_cert_secret         = var.tls_server_cert_secret_name != "" ? var.tls_server_cert_secret_name : (var.tls_server_cert != "" && var.tls_server_cert_key != "" ? kubernetes_secret.server_certificate[0].metadata[0].name : "null")
 
     # global.acl
     manage_system_acls = var.manage_system_acls
@@ -107,6 +108,7 @@ locals {
     server_topology_spread_constraints = jsonencode(var.server_topology_spread_constraints)
     server_update_partition            = var.server_update_partition
     server_security_context            = jsonencode(var.server_security_context)
+    server_expose_gossip_and_rpc_ports = var.server_expose_gossip_and_rpc_ports
 
     ###########################################################################
     # client
@@ -194,6 +196,20 @@ locals {
     ###########################################################################
     terminating_gateway_enable = var.terminating_gateway_enable
     terminating_gateways       = yamlencode(var.terminating_gateways)
+
+    ###########################################################################
+    # Vault Secret Backend
+    ###########################################################################
+    enable_secret_backend_vault   = var.enable_secret_backend_vault
+    vault_ca_additional_config    = var.vault_ca_additional_config
+    vault_consul_server_role      = var.vault_consul_server_role
+    vault_consul_client_role      = var.vault_consul_client_role
+    vault_consul_ca_role          = var.vault_consul_ca_role
+    vault_addr                    = var.vault_addr
+    vault_root_pki_path           = var.vault_root_pki_path
+    vault_intermediate_pki_path   = var.vault_intermediate_pki_path
+    vault_consul_agent_annotation = var.vault_consul_agent_annotation
+
   }
 }
 
