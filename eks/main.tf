@@ -158,13 +158,21 @@ module "eks_logging" {
 ###########################################################################
 # Vault
 ###########################################################################
+/*
 module "eks_vault_installer_test" {
-  source           = "../eks/modules/terraform-aws-eks-vault"
-  chart_namespace  = "vault"
-  create_namespace = true
+  source = "../eks/modules/terraform-aws-eks-vault"
 
+  resource_name_prefix    = local.name
+  aws_region              = var.aws_region
+  cluster_name            = module.eks.eks_cluster.cluster_id
+  provider_arn            = module.eks.eks_oidc_provider.arn
+  public_dns_name         = "idtplateer.com"
+  acm_vault_arn           = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4" # *.idtplateer.com
+  node_group_public_name  = module.eks.eks_public_node_group.node_group_public_name
+  node_group_private_name = module.eks.eks_private_node_group.node_group_private_name
+  
   depends_on = [
     module.eks
-  ]  
+  ]
 }
-
+*/

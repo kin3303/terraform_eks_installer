@@ -1,3 +1,50 @@
+########################################################################################
+# General
+########################################################################################
+variable "cluster_name" {
+  type        = string
+  description = "(Required) EKS cluster name"
+}
+
+variable "aws_region" {
+  type        = string
+  description = "(Required) AWS Region to use"
+}
+
+variable "resource_name_prefix" {
+  type        = string
+  description = "(Required) String value for friendly name prefix for AWS resource names."
+}
+
+variable "provider_arn" {
+  description = "(Required) k8s provider arn"
+  type        = string
+}
+
+variable "acm_vault_arn" {
+  description = "(Required) ACM vault arn"
+  type = string
+}
+
+variable "public_dns_name" {
+  description = "Vault public DNS name."
+  type    = string
+}
+
+variable "node_group_private_name" {
+  description = "EKS private node group name"
+  type    = string
+}
+
+variable "node_group_public_name" {
+  description = "EKS public node group name"
+  type    = string
+}
+ 
+
+########################################################################################
+# Chart
+########################################################################################
 variable "release_name" {
   description = "Helm release name for vault"
   default     = "vault"
@@ -18,16 +65,6 @@ variable "chart_version" {
   default     = "0.22.1"
 }
 
-variable "chart_namespace" {
-  description = "Namespace to install the chart into"
-  default     = "default"
-}
-
-variable "create_namespace" {
-  description = " Create the namespace if it does not yet exist"
-  default     = false
-}
-
 variable "chart_timeout" {
   description = "Timeout to wait for the Chart to be deployed. The chart waits for all Daemonset pods to be healthy before ending. Increase this for larger clusers to avoid timeout"
   default     = 600
@@ -42,34 +79,4 @@ variable "additional_chart_values" {
   description = "Additional values for the Vault Helm Chart in YAML"
   type        = list(string)
   default     = []
-}
-
-variable "secret_name" {
-  description = "Name of the secret for vault"
-  default     = "vault"
-}
-
-variable "secret_annotation" {
-  description = "Annotations for the Vault Secret"
-  default     = {}
-}
-
-variable "tls_ca_cert" {
-  description = "Self generated CA path for Vault Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-variable "tls_ca_cert_key" {
-  description = "Self generated CA path for Vault Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-variable "tls_server_cert" {
-  description = "Server certificate path for Vault Server TLS. Values should be PEM encoded"
-  default     = ""
-}
-
-variable "tls_server_cert_key" {
-  description = "Server certificate path for Vault Server TLS. Values should be PEM encoded"
-  default     = ""
 }

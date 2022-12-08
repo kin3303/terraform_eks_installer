@@ -29,19 +29,20 @@ output "eks_cluster" {
   }
 }
 
-/*
+
 output "eks_public_node_group" {
   value = {
+    node_group_public_name    = local.resource_names.public_node_group_name
     node_group_public_id      = aws_eks_node_group.eks_ng_public.id
     node_group_public_arn     = aws_eks_node_group.eks_ng_public.arn
     node_group_public_status  = aws_eks_node_group.eks_ng_public.status
     node_group_public_version = aws_eks_node_group.eks_ng_public.version
   }
 }
-*/
 
 output "eks_private_node_group" {
   value = {
+    node_group_private_name    = local.resource_names.private_node_group_name
     node_group_private_id      = aws_eks_node_group.eks_ng_private.id
     node_group_private_arn     = aws_eks_node_group.eks_ng_private.arn
     node_group_private_status  = aws_eks_node_group.eks_ng_private.status
