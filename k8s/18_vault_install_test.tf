@@ -1,4 +1,4 @@
-# https://developer.hashicorp.com/vault/tutorials/kubernetes/kubernetes-raft-deployment-guide
+
 
 module "eks_vault_installer_test" {
   source = "../eks/modules/terraform-aws-eks-vault" 
@@ -16,12 +16,17 @@ module "eks_vault_installer_test" {
 # Check Result
 #    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk 
 # 
-# Vault Unseal
+# Vault Init
 #    kubectl get pod -n vault-server
 #    kubectl exec -it vault-0 /bin/sh -n vault-server
 #    vault status
 #    vault operator init 
-#    vault operator unseal 
-#    vault login
-#    vault operator raft list-peers
+#    exit
+# 
+# UI 확인
 #    https://vault.idtplateer.com
+# 
+# Vault Settings (Non-Internal-CA) 
+#    $env:VAULT_ADDR = "https://vault.idtplateer.com" 
+#    vault login
+#    $env:VAULT_TOKEN = "<TOKEN>"

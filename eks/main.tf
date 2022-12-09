@@ -28,6 +28,15 @@ module "eks" {
   nodegroup_ssh_allowed_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
 }
 
+resource "null_resource" "update_kubeconfig" {
+  provisioner "local-exec" { 
+    command = "aws eks --region ${var.aws_region} update-kubeconfig --name ${module.eks.eks_cluster.cluster_id}"
+  }
+  depends_on = [
+    module.eks
+  ]
+}
+
 ################################################################################
 # EKS Addon Installation (EBS CSI Controller)
 ################################################################################
