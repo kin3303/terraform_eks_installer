@@ -10,8 +10,14 @@
 ## k8s cheatsheet
 - [k8s cheatsheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet)
 
-```console
-aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+
+
+## Deploy EKS Cluster
+
+```console 
+cd eks
+helm repo update
+terraform apply --auto-approve
 kubectl get nodes
 kubectl get nodes -o wide
 kubectl get namespaces

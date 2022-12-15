@@ -5,30 +5,40 @@ locals {
 }
 
 module "eks_consul_installer" {
-  source = "../eks/modules/terraform-aws-eks-consul"
-  create_namespace            = true
-  chart_namespace             = local.namespace
+  source           = "../eks/modules/terraform-aws-eks-consul"
+  create_namespace = true
+  chart_namespace  = local.namespace
 
   # global
-  consul_datacenter           = local.datacenter
-  consul_domain               = local.domain
+  consul_datacenter = local.datacenter
+  consul_domain     = local.domain
 
   # global.gossipEncryption
   gossip_enable_auto_generate = true
 
   # global.tls
-  tls_enable_auto_encrypt     = true
+  tls_enable_auto_encrypt = true
+
+  # client
+  client_enable = true
 
   # global.metrics
-  metrics_enabled             = true
-  enable_agent_metrics        = true
-  enable_gateway_metrics      = true
- 
-  # connectInject 
-  enable_connect_inject                 = true
-  connect_inject_by_default             = true
-  connect_inject_default_enable_merging = true
+  metrics_enabled        = true
+  enable_agent_metrics   = true
+  enable_gateway_metrics = true
+
+  # Auto connectInject 
+  enable_connect_inject = true
+  connect_inject_by_default             = false
+  connect_inject_default_enable_merging = false
+  
+  # acl
+  manage_system_acls = false
 }
+
+# UI 활성화 확인
+#    kubectl port-forward service/consul-server --namespace consul 8501:8501
+#    https://localhost:8501/ui/dc1/services
 
 #################################################################################
 # Backend Service
@@ -126,6 +136,7 @@ resource "kubernetes_deployment" "api_v_1" {
 #################################################################################
 # Frontend Service
 #################################################################################
+
 resource "kubernetes_service_account" "web" {
   metadata {
     name = "web"
@@ -226,13 +237,8 @@ resource "kubernetes_deployment" "web_deployment" {
   ]
 }
 
-# Check Result
-#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
-#
-# UI 활성화 확인
-#    kubectl port-forward service/consul-server --namespace consul 8501:8501
-#    https://localhost:8501/ui/dc1/services
 #
 # Service 확인
 #     kubectl port-forward service/web 9090:9090 --address 0.0.0.0
 #     http://localhost:9090/ui
+

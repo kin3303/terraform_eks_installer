@@ -51,7 +51,7 @@ locals {
 
     # global.gossipEncryption
     gossip_enable_auto_generate = var.gossip_enable_auto_generate
-    gossip_secret               = var.gossip_encryption_secret_name != "" ?  var.gossip_encryption_secret_name : (var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : "")
+    gossip_secret               = var.gossip_encryption_secret_name != "" ? var.gossip_encryption_secret_name : (var.gossip_encryption_key != null ? kubernetes_secret.gossip[0].metadata[0].name : "")
     gossip_key                  = var.gossip_encryption_secret_key != "" ? var.gossip_encryption_secret_key : (var.gossip_encryption_key != null ? "gossip" : "")
 
     # global.tls
@@ -62,7 +62,7 @@ locals {
     tls_https_only                 = var.tls_https_only
     tls_enable_auto_encrypt        = jsonencode(var.tls_enable_auto_encrypt)
     tls_cacert_secret_name         = var.tls_cacert_secret_name != "" ? var.tls_cacert_secret_name : (var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null")
-    tls_cacert_secret_key          = var.tls_cacert_secret_key != "" ? var.tls_cacert_secret_key : (var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.crt" : "null") 
+    tls_cacert_secret_key          = var.tls_cacert_secret_key != "" ? var.tls_cacert_secret_key : (var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.crt" : "null")
     tls_cakey_secret_name          = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? kubernetes_secret.ca_certificate[0].metadata[0].name : "null"
     tls_cakey_secret_key           = var.tls_ca_cert != "" && var.tls_ca_cert_key != "" ? "tls.key" : "null"
     tls_server_cert_secret         = var.tls_server_cert_secret_name != "" ? var.tls_server_cert_secret_name : (var.tls_server_cert != "" && var.tls_server_cert_key != "" ? kubernetes_secret.server_certificate[0].metadata[0].name : "null")
@@ -156,7 +156,9 @@ locals {
     ui_additional_spec  = jsonencode(var.ui_additional_spec)
     ui_metrics_provider = var.ui_metrics_provider
     ui_metrics_base_url = var.ui_metrics_base_url
-
+    #ui_acm_consul_arn = var.ui_acm_consul_arn
+    #ui_public_dns_name = var.ui_public_dns_name
+ 
     ###########################################################################
     # connectInject
     ###########################################################################
@@ -200,15 +202,21 @@ locals {
     ###########################################################################
     # Vault Secret Backend
     ###########################################################################
-    enable_secret_backend_vault   = var.enable_secret_backend_vault
-    vault_ca_additional_config    = var.vault_ca_additional_config
-    vault_consul_server_role      = var.vault_consul_server_role
-    vault_consul_client_role      = var.vault_consul_client_role
-    vault_consul_ca_role          = var.vault_consul_ca_role
-    vault_addr                    = var.vault_addr
-    vault_root_pki_path           = var.vault_root_pki_path
-    vault_intermediate_pki_path   = var.vault_intermediate_pki_path
-    vault_consul_agent_annotation = var.vault_consul_agent_annotation
+    enable_secret_backend_vault                 = var.enable_secret_backend_vault
+    vault_ca_additional_config                  = var.vault_ca_additional_config
+    vault_consul_server_role                    = var.vault_consul_server_role
+    vault_consul_client_role                    = var.vault_consul_client_role
+    vault_consul_ca_role                        = var.vault_consul_ca_role
+    vault_addr                                  = var.vault_addr
+    vault_root_pki_path                         = var.vault_root_pki_path
+    vault_intermediate_pki_path                 = var.vault_intermediate_pki_path
+    vault_consul_agent_annotation               = var.vault_consul_agent_annotation
+    vault_consul_controller_role                = var.vault_consul_controller_role
+    vault_consul_inject_role                    = var.vault_consul_inject_role
+    vault_consul_injector_cacert_secret_path    = var.vault_consul_injector_cacert_secret_path
+    vault_consul_injector_tlscert_secret_path   = var.vault_consul_injector_tlscert_secret_path
+    vault_consul_controller_cacert_secret_path  = var.vault_consul_controller_cacert_secret_path
+    vault_consul_controller_tlscert_secret_path = var.vault_consul_controller_tlscert_secret_path
 
   }
 }
@@ -269,3 +277,39 @@ resource "kubernetes_secret" "server_certificate" {
     "tls.key" = file(var.tls_server_cert_key)
   }
 }
+
+#########################################################################################
+# Register DNS
+#########################################################################################
+/*
+data "aws_caller_identity" "current" {}
+
+data "aws_route53_zone" "public" {
+  name         = var.ui_public_dns_name
+  private_zone = false
+}
+
+data "kubernetes_service" "consul_ui" {
+  metadata {
+    name      = "consul-ui"
+    namespace   = var.create_namespace == true ? kubernetes_namespace.consul[0].metadata[0].name : var.chart_namespace
+  }
+  depends_on = [ 
+    helm_release.consul
+  ]
+}
+
+resource "aws_route53_record" "vault" {
+  zone_id = data.aws_route53_zone.public.zone_id
+  name    = "consul.${var.ui_public_dns_name}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [data.kubernetes_service.consul_ui.status.0.load_balancer.0.ingress.0.hostname]
+
+  depends_on = [ 
+    helm_release.consul,
+    data.kubernetes_service.consul_ui
+  ]
+}
+*/
+

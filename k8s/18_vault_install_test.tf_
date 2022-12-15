@@ -13,9 +13,6 @@ module "eks_vault_installer_test" {
   node_group_private_name = data.terraform_remote_state.eks.outputs.eks_private_node_group.node_group_private_name
 }
 
-# Check Result
-#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk 
-# 
 # Vault Init
 #    kubectl get pod -n vault-server
 #    kubectl exec -it vault-0 /bin/sh -n vault-server
@@ -29,4 +26,3 @@ module "eks_vault_installer_test" {
 # Vault Settings (Non-Internal-CA) 
 #    $env:VAULT_ADDR = "https://vault.idtplateer.com" 
 #    vault login
-#    $env:VAULT_TOKEN = "<TOKEN>"

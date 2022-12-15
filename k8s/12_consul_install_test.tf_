@@ -7,38 +7,45 @@ locals {
 
 module "eks_consul_installer" {
   source = "../eks/modules/terraform-aws-eks-consul"
-  
-  create_namespace            = true 
-  chart_namespace             = local.namespace
-  
+
+  create_namespace = true
+  chart_namespace  = local.namespace
+
   # global
-  consul_datacenter           = local.datacenter
-  consul_domain               = local.domain
+  consul_datacenter = local.datacenter
+  consul_domain     = local.domain
+
+  # ui
+  #ui_acm_consul_arn  = "arn:aws:acm:ap-northeast-2:960249453675:certificate/3915d0da-6dd2-4384-8fb0-558b25bf1ff4"
+  #ui_public_dns_name = "idtplateer.com"
 
   # global.gossipEncryption
   gossip_enable_auto_generate = true
-      ## 수동
-      ## $ consul keygen
-      # gossip_enable_auto_generate = false
-      # gossip_encryption_key       = "/jNppi4XKThMjr2GyKh3suNyxdnal4f6rp2QHKwNyR0="
+  ## 수동
+  ## $ consul keygen
+  # gossip_enable_auto_generate = false
+  # gossip_encryption_key       = "/jNppi4XKThMjr2GyKh3suNyxdnal4f6rp2QHKwNyR0="
 
   # global.tls
   tls_enable_auto_encrypt = true
-      ## 수동
-      ## consul tls ca create 
-      ## consul tls cert create -server -days 730 -domain consul -ca consul-agent-ca.pem -key consul-agent-ca-key.pem -dc dc1 
-      # tls_enable_auto_encrypt = false
-      # tls_ca_cert             = "D:/Workspaces/Terraform/eks_installer/certificate/consul-agent-ca.pem"
-      # tls_ca_cert_key         = "D:/Workspaces/Terraform/eks_installer/certificate/consul-agent-ca-key.pem"
-      # tls_server_cert         = "D:/Workspaces/Terraform/eks_installer/certificate/dc1-server-consul-0.pem"
-      # tls_server_cert_key     = "D:/Workspaces/Terraform/eks_installer/certificate/dc1-server-consul-0-key.pem"
+  ## 수동
+  ## consul tls ca create 
+  ## consul tls cert create -server -days 730 -domain consul -ca consul-agent-ca.pem -key consul-agent-ca-key.pem -dc dc1 
+  # tls_enable_auto_encrypt = false
+  # tls_ca_cert             = "D:/Workspaces/Terraform/eks_installer/certificate/consul-agent-ca.pem"
+  # tls_ca_cert_key         = "D:/Workspaces/Terraform/eks_installer/certificate/consul-agent-ca-key.pem"
+  # tls_server_cert         = "D:/Workspaces/Terraform/eks_installer/certificate/dc1-server-consul-0.pem"
+  # tls_server_cert_key     = "D:/Workspaces/Terraform/eks_installer/certificate/dc1-server-consul-0-key.pem"
+
+  # client
+  client_enable = true
 
   # metrics
-  metrics_enabled      = true
-  enable_agent_metrics = true
+  metrics_enabled        = true
+  enable_agent_metrics   = true
   enable_gateway_metrics = true
 
-   # connectInject
+  # connectInject
   enable_connect_inject                 = true
   connect_inject_by_default             = true
   connect_inject_default_enable_merging = true
@@ -67,15 +74,31 @@ module "eks_consul_installer" {
 
 
 # Check Result
-#    aws eks --region ap-northeast-2 update-kubeconfig --name eks-cluster-dk
+#     kubectl get daemonset,statefulset,deployment -n consul
+#        NAME                           DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+#        daemonset.apps/consul-client   4         4         4       4            4           <none>          86s
+#        
+#        NAME                             READY   AGE
+#        statefulset.apps/consul-server   1/1     21m
+#        
+#        NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
+#        deployment.apps/consul-connect-injector       1/1     1            1           21m
+#        deployment.apps/consul-ingress-gateway        1/1     1            1           21m
+#        deployment.apps/consul-webhook-cert-manager   1/1     1            1           21m
 #
 # UI 활성화 확인
-#    kubectl port-forward service/consul-server --namespace consul 8501:8501
-#    https://localhost:8501/ui/dc1/services
+#    kubectl port-forward service/consul-ui -n consul 443
+#    https://localhost
 # 
+# Consul 서버 확인
+#    kubectl exec -it consul-server-0 -n consul -- sh 
+#    consul catalog services
+#    consul catalog nodes
+#
+#
 # TLS 통신 확인
-#    > $env:CONSUL_HTTP_ADDR = "https://localhost:8501"
-#    > kubectl get secret --namespace consul consul-consul-ca-cert -o jsonpath="{.data['tls\.crt']}"
+#    > $env:CONSUL_HTTP_ADDR = "https://localhost"
+#    > kubectl get secret -n consul consul-ca-cert -o jsonpath="{.data['tls\.crt']}"
 #       LS0tLS1CRUdJTiBDRVJUSUZJQ0FU...
 #    > [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String('LS0tLS1CRUdJTiBDRVJUSUZJQ0FU...'))
 #        -----BEGIN CERTIFICATE-----
@@ -83,4 +106,4 @@ module "eks_consul_installer" {
 #        -----END CERTIFICATE-----
 #    > 위 파일을 ca.pem 으로 저장
 #    > consul members -ca-file ca.pem
- 
+

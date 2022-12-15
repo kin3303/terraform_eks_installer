@@ -257,15 +257,25 @@ ui:
   enabled: "-"
   service:
     enabled: true
-    type: null
+    type: "LoadBalancer"
     port:
       http: 80
       https: 443
     nodePort:
       http: null
       https: null
-    annotations: ${ui_annotations}
-    additionalSpec: ${ui_additional_spec}
+    annotations: | 
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"   
+      service.beta.kubernetes.io/aws-load-balancer-ssl-cert: ${ui_acm_consul_arn}
+      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+      service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/ui"
+      service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+      external-dns.alpha.kubernetes.io/hostname: "consul.${ui_public_dns_name}"
+      external-dns.alpha.kubernetes.io/ttl: "30"
+    additionalSpec: |
+      loadBalancerSourceRanges:
+      - "0.0.0.0/0"
   ingress:
     enabled: false
     ingressClassName: ""

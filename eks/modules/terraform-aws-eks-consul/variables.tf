@@ -589,6 +589,19 @@ variable "ui_metrics_base_url" {
   default     = "http://prometheus-server"
 }
 
+/*
+variable "ui_acm_consul_arn" {
+  description = "(Required) ACM consul arn"
+  type = string
+}
+
+
+variable "ui_public_dns_name" {
+  description = "Consul public DNS name."
+  type    = string
+}
+*/
+
 #################################################################################
 # connectInject
 #################################################################################
@@ -890,6 +903,16 @@ variable "vault_consul_ca_role" {
   default     = ""
 }
 
+variable "vault_consul_controller_role" {
+  description = "The Vault role to read Consul controller's webhook's CA and issue a certificate and private key."  
+  default     = ""
+}
+
+variable "vault_consul_inject_role" {
+  description = " The Vault role to read Consul connect-injector webhook's CA and issue a certificate and private key."
+  default     = ""
+}
+
 variable "vault_consul_agent_annotation" {
   description = "The Vault role for all Consul components to read the Consul's server's CA Certificate."
   default = ""
@@ -910,3 +933,22 @@ variable "vault_intermediate_pki_path" {
   default     = ""
 }
 
+variable "vault_consul_injector_cacert_secret_path" {
+  description = "The Vault secret path that contains the CA certificate for Connect Inject webhooks."
+  default     = ""
+}
+
+variable "vault_consul_injector_tlscert_secret_path" {
+  description = "The Vault secret path that issues TLS certificates for connect inject webhooks."
+  default     = ""
+}
+
+variable "vault_consul_controller_cacert_secret_path" {
+  description = "The Vault secret path that contains the CA certificate for controller webhooks."
+  default     = ""
+}
+
+variable "vault_consul_controller_tlscert_secret_path" {
+  description = "The Vault secret path that issues TLS certificates for controller webhooks."    
+  default     = ""
+}
