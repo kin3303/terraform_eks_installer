@@ -68,5 +68,5 @@ nodegroup_private_subnet_ids = [
 ################################################################################################
 # Bastion to check EKS
 ################################################################################################
-#nodegroup_ssh_key                        = "eks-terraform-key"
-#nodegroup_ssh_allowed_security_group_ids = ["sg-07d00e7cd0ebc55db"]
+nodegroup_ssh_key                        = "eks-terraform-key"
+nodegroup_ssh_allowed_security_group_ids = ["sg-07d00e7cd0ebc55db"]

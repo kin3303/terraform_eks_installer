@@ -22,12 +22,12 @@ variable "business_divsion" {
 
 variable "vpc_cidr_block" {
   type        = string
-  description = "(Required) VPC CIDR Block" 
+  description = "(Required) VPC CIDR Block"
 }
 
 variable "vpc_id" {
   type        = string
-  description = "(Required) VPC ID" 
+  description = "(Required) VPC ID"
 }
 
 
@@ -71,13 +71,14 @@ variable "nodegroup_private_subnet_ids" {
 variable "nodegroup_ssh_key" {
   description = "(Optional) EC2 Key Pair name that provides access for SSH communication with the worker nodes in the EKS Node Group"
   type        = string
+  default     = null
 }
 
 variable "nodegroup_ssh_allowed_security_group_ids" {
   description = "(Optional) Set of EC2 Security Group IDs to allow SSH access (port 22) from on the worker nodes."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = [] #["0.0.0.0/0"]
 }
 
 
- 
+
