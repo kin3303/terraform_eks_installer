@@ -65,9 +65,8 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          "consul.hashicorp.com/connect-inject"            = "true"
-          "consul.hashicorp.com/connect-service-upstreams" = "backend:80"
-        }              
+          "consul.hashicorp.com/connect-inject" = "true"
+        }
       }
 
       spec {
@@ -173,7 +172,7 @@ resource "kubernetes_deployment_v1" "backend" {
     module.eks_consul_installer
   ]
 }
- 
+
 resource "kubernetes_service_v1" "backend" {
   metadata {
     name = "backend"
@@ -198,9 +197,9 @@ resource "kubernetes_service_v1" "backend" {
   ]
 }
 
-# Phase 1 > annotation 주석을 모두 비활성화 후 terraform apply
-# Phase 2 > annotation 주석을 활성화 후 terraform apply
-# Phase 3 > annotation 중 "consul.hashicorp.com/connect-service-upstreams" = "backend:80" 활성화
+# Phase 0 > Consul 설치
+# Phase 1 > deployment annotation 주석을 모두 비활성화 후 terraform apply
+# Phase 2 > deployment annotation 주석을 활성화 후 terraform apply
 #
 # UI 활성화 확인
 #    kubectl port-forward service/consul-server --namespace consul 8501:8501
