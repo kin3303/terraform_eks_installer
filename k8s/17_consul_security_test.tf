@@ -1,6 +1,3 @@
-
-
-
 locals {
   domain     = "consul"
   namespace  = "consul"
@@ -37,7 +34,128 @@ module "eks_consul_installer" {
 
   # acl
   manage_system_acls = false
+
+  # ingressGateways    
+  ingress_gateway_enable = true
+  ingress_gateways = [
+    {
+      name = "ingress-gateway"
+      service = {
+        type = "ClusterIP"
+        ports = [
+          {
+            nodePort = null
+            port     = 8080
+          }
+        ]
+      }
+      consulNamespace = local.namespace
+    }
+  ]
 }
+
+resource "kubectl_manifest" "ingress_gateway" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: ingress-gateway 
+  namespace: consul 
+spec:
+  listeners:
+  - port: 8080 
+    protocol: http 
+    services: 
+    - name: frontend 
+      hosts: ["localhost"]
+YAML
+  depends_on = [
+    module.eks_consul_installer,
+    kubernetes_service_v1.frontend,
+    kubernetes_service_v1.backend
+  ]
+}
+
+resource "kubectl_manifest" "proxy_default" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults 
+metadata:
+  name: global 
+  namespace: consul 
+spec:
+  config:
+    protocol: http 
+YAML
+  depends_on = [
+    module.eks_consul_installer,
+    kubernetes_service_v1.frontend,
+    kubernetes_service_v1.backend
+  ]
+}
+
+resource "kubectl_manifest" "frontend_service_intention" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: frontend
+spec:
+  destination:
+    name: frontend
+  sources:
+    - name: ingress-gateway
+      permissions: 
+        - http:
+            pathPrefix: /admin 
+          action: deny
+        - http:
+            pathPrefix: / 
+          action: allow
+YAML
+  depends_on = [
+    kubectl_manifest.proxy_default
+  ]
+}
+
+resource "kubectl_manifest" "backend_service_intention" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: backend
+  namespace: consul   
+spec:
+  destination:
+    name: backend 
+  sources:
+    - name: frontend
+      action: allow
+YAML
+  depends_on = [
+    kubectl_manifest.proxy_default
+  ]
+}
+
+resource "kubectl_manifest" "deny_all_service_intention" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: deny-all
+  namespace: consul
+spec:
+  destination:
+    name: "*" # 대상 서비스명
+  sources:
+    - name: "*"    # 소스 서비스명
+      action: deny  # 통신을 허용하거나 거부하도록 설정
+YAML
+  depends_on = [ 
+    kubectl_manifest.proxy_default
+  ]
+}
+
 
 
 resource "kubernetes_deployment_v1" "frontend" {
@@ -92,7 +210,8 @@ resource "kubernetes_deployment_v1" "frontend" {
     }
   }
   depends_on = [
-    module.eks_consul_installer
+    module.eks_consul_installer,
+    kubernetes_service_v1.backend
   ]
 }
 
@@ -117,11 +236,10 @@ resource "kubernetes_service_v1" "frontend" {
 
   }
   depends_on = [
-    module.eks_consul_installer
+    module.eks_consul_installer,
+    kubernetes_deployment_v1.frontend
   ]
 }
-
-
 
 resource "kubernetes_deployment_v1" "backend" {
   metadata {
@@ -193,24 +311,26 @@ resource "kubernetes_service_v1" "backend" {
     }
   }
   depends_on = [
-    module.eks_consul_installer
+    module.eks_consul_installer,
+    kubernetes_deployment_v1.backend
   ]
 }
 
-# Phase 0 > Consul 설치
-# Phase 1 > deployment annotation 주석을 모두 비활성화 후 terraform apply
-# Phase 2 > deployment annotation 주석을 활성화 후 terraform apply
+# Phase 0 > Consul 설치, App 배포
 #
-# UI 활성화 확인
-#    kubectl port-forward service/consul-server --namespace consul 8501:8501
-#    https://localhost:8501/ui/dc1/services
+#    terraform apply --auto-approve
 #
-# 배포확인  
-#    kubectl get deployment,service --selector app=frontend
-#    kubectl get deployment,service --selector app=backend
+# Phase 1 > Service Intention Test > 모든 주석 해제
 #
-# 접근확인
-#    kubectl exec consul-server-0 -n consul -- curl -sS http://frontend.default:6060 
-#    kubectl exec deploy/frontend -c frontend -- curl -si http://backend/bird
-#    kubectl port-forward service/frontend 6060:6060 --address 0.0.0.0
-#    http://localhost:6060
+#    terraform apply --auto-approve
+#
+#    배포확인
+#      kubectl get serviceintentions -n consul
+#      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
+#      http://localhost:8080 >> SUCCESS
+#      http://localhost:8080/admin >> RBAC: access denied
+#
+#    UI 확인
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui/dc1/intentions
+ 

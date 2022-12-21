@@ -1,6 +1,3 @@
-
-
-
 locals {
   domain     = "consul"
   namespace  = "consul"
@@ -182,8 +179,6 @@ resource "kubernetes_service_v1" "frontend" {
   ]
 }
 
-
-
 resource "kubernetes_deployment_v1" "backend" {
   metadata {
     name = "backend"
@@ -259,27 +254,45 @@ resource "kubernetes_service_v1" "backend" {
   ]
 }
 
-# Phase 0 > Consul 설치
-# Phase 1 > deployment annotation 주석을 모두 비활성화 후 terraform apply
-# Phase 2 > deployment annotation 주석을 활성화 후 terraform apply
-# Phase 3 > ingress_gateway 활성화 후 terraform apply
+# Phase 0 > Consul 설치, App 배포
 #
-# 배포확인  
-#    kubectl get deployment,service --selector app=frontend
-#    kubectl get deployment,service --selector app=backend
-#    kubectl get ingressgateway ingress-gateway -n consul >> SYNCED == false 확인
-#    kubectl describe ingressgateway ingress-gateway -n consul
+#    terraform apply --auto-approve
 #
-# 접근확인
-#    kubectl exec consul-server-0 -n consul -- curl -sS http://frontend.default:6060 
-#    kubectl exec deploy/frontend -c frontend -- curl -si http://backend/bird
-#    kubectl port-forward service/frontend 6060:6060 --address 0.0.0.0
-#    http://localhost:6060
+#    UI 활성화 확인
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui/dc1/services
 #
-# Phase 4 > proxy_default 활성화 후 terraform apply
-#     kubectl get ingressgateway ingress-gateway -n consul  >> SYNCED == true 확인
+#    배포확인  
+#      kubectl get deployment,service --selector app=frontend
+#      kubectl get deployment,service --selector app=backend
 #
-# UI 활성화 확인
-#    kubectl port-forward service/consul-server --namespace consul 8501:8501
-#    https://localhost:8501/ui/dc1/services
 #
+# Phase 1 > Sidecar Proxy 확인 > "consul.hashicorp.com/connect-inject" = "true" 주석 해제
+#
+#    terraform apply --auto-approve
+#
+#    배포확인   
+#      kubectl exec consul-server-0 -n consul -- curl -sS http://frontend.default:6060 >> ERROR (proxy 에 의해 차단)
+#      kubectl exec deploy/frontend -c frontend -- curl -si http://backend/bird >> SUCCESS (frontend app 에서 직접 보내는건 됨)
+#      kubectl port-forward service/frontend 6060:6060 --address 0.0.0.0 
+#      http://localhost:6060  >> SUCCESS (kubectl port-forward 는 proxy 를 우회함)
+#
+#
+# Phase 2 > Ingress Gateway 활성화 > ingress_gateway 주석 해제
+#
+#    terraform apply --auto-approve
+#
+#    배포확인
+#      kubectl get ingressgateway ingress-gateway -n consul >> SYNCED == false 확인
+#      kubectl describe ingressgateway ingress-gateway -n consul >> writing config entry to consul: Unexpected response code: 500 (service "frontend" has protocol "tcp", which does not match defined listener protocol "http")
+#      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0   
+#      http://localhost:8080 >> ERROR
+#
+# Phase 2 > Proxy Defaults 활성화 > proxy_default 주석 해제
+#
+#    terraform apply --auto-approve
+#
+#    배포확인
+#      kubectl get ingressgateway ingress-gateway -n consul  >> SYNCED == true 확인
+#      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
+#      http://localhost:8080

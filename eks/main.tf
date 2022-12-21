@@ -25,7 +25,7 @@ module "eks" {
   nodegroup_private_subnet_ids             = var.nodegroup_private_subnet_ids
   nodegroup_public_subnet_ids              = var.nodegroup_public_subnet_ids
   nodegroup_ssh_key                        = var.nodegroup_ssh_key
-  nodegroup_ssh_allowed_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
+  #nodegroup_ssh_allowed_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
 }
 
 resource "null_resource" "update_kubeconfig" {
