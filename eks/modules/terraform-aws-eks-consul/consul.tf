@@ -158,6 +158,7 @@ locals {
     ui_metrics_base_url = var.ui_metrics_base_url
     #ui_acm_consul_arn = var.ui_acm_consul_arn
     #ui_public_dns_name = var.ui_public_dns_name
+    ui_dashboard_url_templates = var.ui_dashboard_url_templates
  
     ###########################################################################
     # connectInject

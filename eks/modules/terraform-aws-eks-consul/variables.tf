@@ -586,21 +586,16 @@ variable "ui_metrics_provider" {
 
 variable "ui_metrics_base_url" {
   description = "URL of the prometheus server, usually the service URL."
-  default     = "http://prometheus-server"
+  default     = "http://prometheus-server.default.svc.cluster.local"
 }
 
-/*
-variable "ui_acm_consul_arn" {
-  description = "(Required) ACM consul arn"
-  type = string
+variable "ui_dashboard_url_templates" {
+  description = <<-EOF
+   This map specifies URL templates that may be used to render links to external dashboards in various contexts in the UI.
+   "http://<GRAFANA_DOMAIN>/d/<YOUR_ID>/services?orgId=1&var-Service={{Service.Name}}"
+   EOF
+  default     = ""
 }
-
-
-variable "ui_public_dns_name" {
-  description = "Consul public DNS name."
-  type    = string
-}
-*/
 
 #################################################################################
 # connectInject

@@ -278,7 +278,7 @@ ui:
     provider:  ${ui_metrics_provider}
     baseURL:  ${ui_metrics_base_url}
   dashboardURLTemplates:
-    service: ""
+    service: ${ui_dashboard_url_templates}
 
 connectInject:
   enabled: ${enable_connect_inject}

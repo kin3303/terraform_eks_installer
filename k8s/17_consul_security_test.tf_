@@ -54,6 +54,7 @@ module "eks_consul_installer" {
   ]
 }
 
+/*
 resource "kubectl_manifest" "ingress_gateway" {
   yaml_body = <<YAML
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -155,7 +156,7 @@ YAML
     kubectl_manifest.proxy_default
   ]
 }
-
+*/
 
 
 resource "kubernetes_deployment_v1" "frontend" {
@@ -183,7 +184,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -265,7 +266,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
