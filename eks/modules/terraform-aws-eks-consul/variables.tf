@@ -870,6 +870,12 @@ variable "enable_grafana" {
   default     = false
 }
 
+variable "enable_jaeger" {
+  description = "When true, the Helm chart will install Jaeger instance alongside Consul."
+  default     = false
+}
+
+
 #################################################################################
 # Secret Backend
 #################################################################################

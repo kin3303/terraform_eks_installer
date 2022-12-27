@@ -46,6 +46,7 @@ module "eks_consul_installer" {
   # monitoring
   enable_prometheus = true
   enable_grafana    = true
+  enable_jaeger     = true
 
   # ingressGateways    
   ingress_gateway_enable = true
@@ -66,7 +67,7 @@ module "eks_consul_installer" {
   ]
 }
 
-/*
+
 resource "kubectl_manifest" "ingress_gateway" {
   yaml_body = <<YAML
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -98,7 +99,48 @@ metadata:
   namespace: consul 
 spec:
   config:
-    protocol: http 
+    protocol: http
+    envoy_tracing_json: | 
+      {
+        "http":{
+          "name":"envoy.tracers.zipkin",
+          "typedConfig":{
+            "@type":"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+            "collector_cluster":"jaeger_collector",
+            "collector_endpoint_version":"HTTP_JSON",
+            "collector_endpoint":"/api/v2/spans",
+            "shared_span_context":false
+          }
+        }
+      }
+    envoy_extra_static_clusters_json: | 
+      {
+        "connect_timeout":"3.000s",
+        "dns_lookup_family":"V4_ONLY",
+        "lb_policy":"ROUND_ROBIN",
+        "load_assignment":{
+          "cluster_name":"jaeger_collector",
+          "endpoints":[
+            {
+              "lb_endpoints":[
+                {
+                  "endpoint":{
+                    "address":{
+                      "socket_address":{
+                        "address":"jaeger-collector.default",
+                        "port_value":9411, 
+                        "protocol":"TCP"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "name":"jaeger_collector",
+        "type":"STRICT_DNS"
+      }    
 YAML
   depends_on = [
     module.eks_consul_installer,
@@ -168,7 +210,7 @@ YAML
     kubectl_manifest.proxy_default
   ]
 }
-*/
+
 
 
 resource "kubernetes_deployment_v1" "frontend" {
@@ -196,7 +238,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          #"consul.hashicorp.com/connect-inject" = "true"
+          "consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -216,8 +258,13 @@ resource "kubernetes_deployment_v1" "frontend" {
 
           env {
             name  = "BACKEND_URL"
-            value = "http://backend" #"http://localhost:7000"
+            value = "http://backend"
           }
+          
+          env {
+            name  = "TRACING_URL"
+            value = "http://jaeger-collector.default:9411" 
+          }          
         }
       }
     }
@@ -278,7 +325,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          #"consul.hashicorp.com/connect-inject" = "true"
+          "consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -295,6 +342,11 @@ resource "kubernetes_deployment_v1" "backend" {
             name  = "BIND_ADDR"
             value = "0.0.0.0:7000"
           }
+
+          env {
+            name  = "TRACING_URL"
+            value = "http://jaeger-collector.default:9411" 
+          }  
         }
       }
     }
@@ -435,3 +487,22 @@ resource "kubernetes_service_v1" "backend" {
 #      kubectl port-forward service/consul-server --namespace consul 8501:8501
 #      https://localhost:8501/ui
 #      Grafana 열리는지 확인
+#
+# Phase 4 > Jaeger 연동 확인
+#
+#   Service 재시작
+#      kubectl get proxydefaults global -n consul >> SYNCED 확인
+#      kubectl rollout restart deploy/consul-ingress-gateway -n consul
+#      kubectl rollout restart deploy/frontend
+#      kubectl rollout restart deploy/backend
+#      ubectl rollout status deploy/consul-ingress-gateway --watch -n consul
+#      kubectl rollout status deploy/frontend --watch
+#      kubectl rollout status deploy/frontend --watch
+#
+#    App
+#      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
+#      http://localhost:8080 
+#
+#    Jaeger
+#       kubectl port-forward svc/jaeger-query 16686:16686   
+#       http://localhost:16686
