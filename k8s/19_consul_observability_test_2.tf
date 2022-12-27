@@ -67,7 +67,7 @@ module "eks_consul_installer" {
   ]
 }
 
-
+/*
 resource "kubectl_manifest" "ingress_gateway" {
   yaml_body = <<YAML
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -210,7 +210,7 @@ YAML
     kubectl_manifest.proxy_default
   ]
 }
-
+*/
 
 
 resource "kubernetes_deployment_v1" "frontend" {
@@ -239,6 +239,7 @@ resource "kubernetes_deployment_v1" "frontend" {
 
         annotations = {
           "consul.hashicorp.com/connect-inject" = "true"
+          #"sidecar.jaegertracing.io/inject" = "true"
         }
       }
 
@@ -261,10 +262,10 @@ resource "kubernetes_deployment_v1" "frontend" {
             value = "http://backend"
           }
           
-          env {
-            name  = "TRACING_URL"
-            value = "http://jaeger-collector.default:9411" 
-          }          
+          #env {
+          #  name  = "TRACING_URL"
+          #  value = "http://jaeger-collector.default:9411" 
+          #}          
         }
       }
     }
@@ -325,7 +326,8 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
+          #"sidecar.jaegertracing.io/inject" = "true"
         }
       }
 
@@ -343,10 +345,10 @@ resource "kubernetes_deployment_v1" "backend" {
             value = "0.0.0.0:7000"
           }
 
-          env {
-            name  = "TRACING_URL"
-            value = "http://jaeger-collector.default:9411" 
-          }  
+          #env {
+          #  name  = "TRACING_URL"
+          #  value = "http://jaeger-collector.default:9411" 
+          #}  
         }
       }
     }
@@ -489,6 +491,9 @@ resource "kubernetes_service_v1" "backend" {
 #      Grafana 열리는지 확인
 #
 # Phase 4 > Jaeger 연동 확인
+#
+#   App 수정
+#       https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
 #
 #   Service 재시작
 #      kubectl get proxydefaults global -n consul >> SYNCED 확인
