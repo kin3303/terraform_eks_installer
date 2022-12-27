@@ -238,7 +238,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
           #"sidecar.jaegertracing.io/inject" = "true"
         }
       }
