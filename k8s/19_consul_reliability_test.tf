@@ -67,7 +67,7 @@ module "eks_consul_installer" {
   ]
 }
 
-
+/*
 resource "kubectl_manifest" "ingress_gateway" {
   yaml_body = <<YAML
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -228,7 +228,7 @@ YAML
     kubectl_manifest.deny_all_service_intention
   ]
 }
-
+*/
 
 resource "kubernetes_deployment_v1" "frontend" {
   metadata {
@@ -238,7 +238,7 @@ resource "kubernetes_deployment_v1" "frontend" {
       app = "frontend"
     }
     annotations = {
-      "sidecar.jaegertracing.io/inject" = "true"
+      #"sidecar.jaegertracing.io/inject" = "true"
     }
   }
 
@@ -258,7 +258,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true" 
+          #"consul.hashicorp.com/connect-inject" = "true" 
         }
       }
 
@@ -330,7 +330,7 @@ resource "kubernetes_deployment_v1" "backend" {
     }
 
     annotations = {
-      "sidecar.jaegertracing.io/inject" = "true"
+      #"sidecar.jaegertracing.io/inject" = "true"
     }   
   }
 
@@ -349,7 +349,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -372,13 +372,13 @@ resource "kubernetes_deployment_v1" "backend" {
             value = "http://jaeger-collector.default:9411" 
           }
 
-          readiness_probe {
-            http_get {
-              path = "/healthz"
-              port = "9999" # "7000"
-            }
-            period_seconds = 5
-          }
+          #readiness_probe {
+          #  http_get {
+          #    path = "/healthz"
+          #    port = "9999" # "7000"
+          #  }
+          #  period_seconds = 5
+          #}
         }
       }
     }
