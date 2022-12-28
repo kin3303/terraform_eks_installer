@@ -26,15 +26,15 @@ module "eks_consul_installer" {
   metrics_enabled        = true
   enable_agent_metrics   = true
   enable_gateway_metrics = true
-  
+
   # ui
-  ui_metrics_provider  = "prometheus"
-  ui_metrics_base_url  = "http://prometheus-server.default.svc.cluster.local"  
+  ui_metrics_provider = "prometheus"
+  ui_metrics_base_url = "http://prometheus-server.default.svc.cluster.local"
   #ui_dashboard_url_templates =  "http://localhost:3000/d/<YOUR_ID>/services?orgId=1&var-Service={{Service.Name}}"
 
   # tls
   tls_https_only = false
-  
+
   # connectInject 
   enable_connect_inject                 = true
   connect_inject_by_default             = false
@@ -42,7 +42,7 @@ module "eks_consul_installer" {
 
   # acl
   manage_system_acls = false
-  
+
   # monitoring
   enable_prometheus = true
   enable_grafana    = true
@@ -220,6 +220,9 @@ resource "kubernetes_deployment_v1" "frontend" {
     labels = {
       app = "frontend"
     }
+    annotations = {
+      "sidecar.jaegertracing.io/inject" = "true"
+    }
   }
 
   spec {
@@ -238,8 +241,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          #"consul.hashicorp.com/connect-inject" = "true"
-          #"sidecar.jaegertracing.io/inject" = "true"
+          "consul.hashicorp.com/connect-inject" = "true" 
         }
       }
 
@@ -261,7 +263,7 @@ resource "kubernetes_deployment_v1" "frontend" {
             name  = "BACKEND_URL"
             value = "http://backend"
           }
-          
+
           #env {
           #  name  = "TRACING_URL"
           #  value = "http://jaeger-collector.default:9411" 
@@ -281,7 +283,7 @@ resource "kubernetes_service_v1" "frontend" {
     name = "frontend"
     labels = {
       app = "frontend"
-    }
+    } 
   }
 
   spec {
@@ -309,6 +311,10 @@ resource "kubernetes_deployment_v1" "backend" {
     labels = {
       app = "backend"
     }
+
+    annotations = {
+      "sidecar.jaegertracing.io/inject" = "true"
+    }   
   }
 
   spec {
@@ -326,8 +332,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          #"consul.hashicorp.com/connect-inject" = "true"
-          #"sidecar.jaegertracing.io/inject" = "true"
+          "consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -500,7 +505,7 @@ resource "kubernetes_service_v1" "backend" {
 #      kubectl rollout restart deploy/consul-ingress-gateway -n consul
 #      kubectl rollout restart deploy/frontend
 #      kubectl rollout restart deploy/backend
-#      ubectl rollout status deploy/consul-ingress-gateway --watch -n consul
+#      kubectl rollout status deploy/consul-ingress-gateway --watch -n consul
 #      kubectl rollout status deploy/frontend --watch
 #      kubectl rollout status deploy/frontend --watch
 #
