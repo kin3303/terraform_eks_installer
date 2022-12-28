@@ -430,16 +430,18 @@ resource "kubernetes_service_v1" "backend" {
 #      kubectl rollout status deploy/consul-ingress-gateway --watch -n consul
 #      kubectl rollout status deploy/frontend --watch
 #      kubectl rollout status deploy/frontend --watch
-
+#
 #    App
 #      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
 #      http://localhost:8080 
-#      Error Ratio 를 100% 로 수정후 Shuffle
+#      Case 1 > Error Ratio 를 100% 로 수정후 Shuffle
+#      Case 2 > 동일 조건에서 여러번 더 Shuffle
 #
 #    Jaeger
 #       kubectl port-forward svc/jaeger-query 16686:16686   
 #       http://localhost:16686
-#       요청을 5번 했는지 확인
+#       Case 1 > 첫 요청을 5번 했는지 확인
+#       Case 2 > 요청이 frontend 에서 끊겼는지 확인 (Circuit Break) - Compare Trace 버튼으로 두 요청을 비교 가능
 #
 #    Consul UI 
 #      kubectl port-forward service/consul-server --namespace consul 8501:8501
