@@ -67,7 +67,7 @@ module "eks_consul_installer" {
   ]
 }
 
-/*
+
 resource "kubectl_manifest" "ingress_gateway" {
   yaml_body = <<YAML
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -228,7 +228,6 @@ YAML
     kubectl_manifest.deny_all_service_intention
   ]
 }
-*/
 
 
 resource "kubernetes_deployment_v1" "frontend" {
@@ -239,7 +238,7 @@ resource "kubernetes_deployment_v1" "frontend" {
       app = "frontend"
     }
     annotations = {
-      #"sidecar.jaegertracing.io/inject" = "true"
+      "sidecar.jaegertracing.io/inject" = "true"
     }
   }
 
@@ -259,7 +258,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          #"consul.hashicorp.com/connect-inject" = "true" 
+          "consul.hashicorp.com/connect-inject" = "true" 
         }
       }
 
@@ -331,7 +330,7 @@ resource "kubernetes_deployment_v1" "backend" {
     }
 
     annotations = {
-      #"sidecar.jaegertracing.io/inject" = "true"
+      "sidecar.jaegertracing.io/inject" = "true"
     }   
   }
 
@@ -350,7 +349,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          #"consul.hashicorp.com/connect-inject" = "true"
+          "consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -373,13 +372,13 @@ resource "kubernetes_deployment_v1" "backend" {
             value = "http://jaeger-collector.default:9411" 
           }
 
-          #readiness_probe {
-          #  http_get {
-          #    path = "/healthz"
-          #    port = "9999" # "7000"
-          #  }
-          #  period_seconds = 5
-          #}
+          readiness_probe {
+            http_get {
+              path = "/healthz"
+              port = "9999" # "7000"
+            }
+            period_seconds = 5
+          }
         }
       }
     }
@@ -416,13 +415,9 @@ resource "kubernetes_service_v1" "backend" {
 
 # Phase 0 > Consul 설치, App 배포
 #
-#   terraform apply --auto-approve
+#   terraform apply --auto-approve 
 #
-# Phase 1 > Passive Health Check  > readiness_probe , Service Router 제외 모든 주석 해제 
-#
-#   terraform apply --auto-approve
-#
-# Phase 2 > Service Router 주석해제 
+# Phase 1 > Passive Health Check  > readiness_probe  제외 모든 주석 해제 
 #
 #   terraform apply --auto-approve
 #
@@ -451,9 +446,15 @@ resource "kubernetes_service_v1" "backend" {
 #      https://localhost:8501/ui
 #      Backend 서비스 활성 상태 확인, Circuit Break 검사 
 #
-# Phase 3 > Backend Service 의 readiness_probe 주석 해제
+# Phase 3 > Active Health Check > readiness_probe 주석 해제
 #
-#    Consul UI 
+#    서비스 비활성 상태 확인
 #      kubectl port-forward service/consul-server --namespace consul 8501:8501
 #      https://localhost:8501/ui
-#      서비스 비활성 상태 확인
+#      Service > Instances > Health Checks 항목서 Backend 서비스 Readiness Probe 실패 및 서비스 비활성 상태 확인
+#    
+#    서비스 활성 상태 확인
+#      port = "9999" # "7000" 을 7000 으로 변경 후 terraform apply --auto-approve
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui
+#      Service > Instances > Health Checks 항목서 Backend 서비스 Readiness Probe 성공 및 서비스 활성 상태 확인
