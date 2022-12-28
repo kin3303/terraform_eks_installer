@@ -188,7 +188,7 @@ spec:
       action: allow
 YAML
   depends_on = [
-    kubectl_manifest.proxy_default
+    kubectl_manifest.frontend_service_intention
   ]
 }
 
@@ -207,7 +207,25 @@ spec:
       action: deny  # 통신을 허용하거나 거부하도록 설정
 YAML
   depends_on = [ 
-    kubectl_manifest.proxy_default
+    kubectl_manifest.backend_service_intention
+  ]
+}
+
+
+resource "kubectl_manifest" "backend_router" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceRouter
+metadata:
+  name: backend
+spec:
+  routes:
+    - destination:
+        numRetries: 5 
+        retryOnStatusCodes: [503]
+YAML
+  depends_on = [ 
+    kubectl_manifest.deny_all_service_intention
   ]
 }
 */
@@ -221,7 +239,7 @@ resource "kubernetes_deployment_v1" "frontend" {
       app = "frontend"
     }
     annotations = {
-      "sidecar.jaegertracing.io/inject" = "true"
+      #"sidecar.jaegertracing.io/inject" = "true"
     }
   }
 
@@ -241,7 +259,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true" 
+          #"consul.hashicorp.com/connect-inject" = "true" 
         }
       }
 
@@ -264,10 +282,10 @@ resource "kubernetes_deployment_v1" "frontend" {
             value = "http://backend"
           }
 
-          #env {
-          #  name  = "TRACING_URL"
-          #  value = "http://jaeger-collector.default:9411" 
-          #}          
+          env {
+            name  = "TRACING_URL"
+            value = "http://jaeger-collector.default:9411" 
+          }          
         }
       }
     }
@@ -313,7 +331,7 @@ resource "kubernetes_deployment_v1" "backend" {
     }
 
     annotations = {
-      "sidecar.jaegertracing.io/inject" = "true"
+      #"sidecar.jaegertracing.io/inject" = "true"
     }   
   }
 
@@ -332,7 +350,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -350,10 +368,18 @@ resource "kubernetes_deployment_v1" "backend" {
             value = "0.0.0.0:7000"
           }
 
-          #env {
-          #  name  = "TRACING_URL"
-          #  value = "http://jaeger-collector.default:9411" 
-          #}  
+          env {
+            name  = "TRACING_URL"
+            value = "http://jaeger-collector.default:9411" 
+          }
+
+          #readiness_probe {
+          #  http_get {
+          #    path = "/healthz"
+          #    port = "9999" # "7000"
+          #  }
+          #  period_seconds = 5
+          #}
         }
       }
     }
@@ -390,129 +416,44 @@ resource "kubernetes_service_v1" "backend" {
 
 # Phase 0 > Consul 설치, App 배포
 #
-#    terraform apply --auto-approve
+#   terraform apply --auto-approve
 #
-# Phase 1 > Service Intention Test > 모든 주석 해제
+# Phase 1 > Passive Health Check  > readiness_probe , Service Router 제외 모든 주석 해제 
 #
-#    terraform apply --auto-approve
+#   terraform apply --auto-approve
 #
-#    배포확인 
-#      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
-#      http://localhost:8080 >> SUCCESS
-#      http://localhost:8080/admin >> RBAC: access denied
+# Phase 2 > Service Router 주석해제 
 #
-# Phase 2 > Promethues, Grafana, Consul UI 확인
-#
-#    Promethues 확인
-#      kubectl port-forward deploy/prometheus-server 9090:9090
-#      http://localhost:9090 
-#      envoy_http_downstream_rq_completed 확인
-#
-#    Consul UI 
-#      kubectl port-forward service/consul-server --namespace consul 8501:8501
-#      https://localhost:8501/ui/dc1/intentions
-# 
-#    Grafana
-#       kubectl port-forward svc/grafana 3000:3000   
-#       http://localhost:3000
-#
-#       Username : admin Password: password
-#
-#       Data sources : Prometheus / http://prometheus-server.default.svc.cluster.local
-#
-#       Dashboard Settings-> Variables
-#           Name : Service
-#           Query : label_values(consul_source_service)
-#
-#       Add a new panel - RPS 
-#         sum(
-#           rate(
-#             envoy_http_downstream_rq_completed{
-#               consul_source_service="$Service",
-#               envoy_http_conn_manager_prefix="public_listener"
-#             }[$__rate_interval]]
-#           )
-#         ) 
-#         
-#       Add a new panel - Error(%) 
-#         sum(
-#           rate(
-#             envoy_http_downstream_rq_xx{
-#               consul_source_service="$Service",
-#               envoy_http_conn_manager_prefix=~"public_listener",
-#               envoy_response_code_class="5"
-#             }[$__rate_interval]]
-#           )
-#         ) /
-#         sum(
-#           rate(
-#             envoy_http_downstream_rq_completed{
-#               consul_source_service="$Service",
-#               envoy_http_conn_manager_prefix=~"public_listener"
-#             }[$__rate_interval]]
-#           )
-#         )
-#         
-#      Add a new panel - Latency 
-#         histogram_quantile(
-#           0.5,
-#           sum(
-#             rate(
-#               envoy_http_downstream_rq_time_bucket{
-#                 consul_source_service="$Service",
-#                 envoy_http_conn_manager_prefix=~"public_listener"
-#               }[$__rate_interval]]
-#             )
-#           ) by (le)
-#         )  
-#         
-#         histogram_quantile(
-#           0.99,
-#           sum(
-#             rate(
-#               envoy_http_downstream_rq_time_bucket{
-#                 consul_source_service="$Service",
-#                 envoy_http_conn_manager_prefix=~"public_listener"
-#               }[$__rate_interval]]
-#             )
-#           ) by (le)
-#         )  
-#
-# Phase 3 > Grafana 와 Consul 연동하기
-#
-#    ui_dashboard_url_templates 에 ID 적절히 넣어 URL Template 완성한 후 terraform apply
-# 
-#    App
-#      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
-#      http://localhost:8080 
-#
-#    Grafana
-#       kubectl port-forward svc/grafana 3000:3000   
-#       http://localhost:3000
-#
-#    Consul UI 
-#      kubectl port-forward service/consul-server --namespace consul 8501:8501
-#      https://localhost:8501/ui
-#      Grafana 열리는지 확인
-#
-# Phase 4 > Jaeger 연동 확인
-#
-#   App 수정
-#       https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
+#   terraform apply --auto-approve
 #
 #   Service 재시작
 #      kubectl get proxydefaults global -n consul >> SYNCED 확인
+#      kubectl get servicerouter backend  >> SYNCED 확인
 #      kubectl rollout restart deploy/consul-ingress-gateway -n consul
 #      kubectl rollout restart deploy/frontend
 #      kubectl rollout restart deploy/backend
 #      kubectl rollout status deploy/consul-ingress-gateway --watch -n consul
 #      kubectl rollout status deploy/frontend --watch
 #      kubectl rollout status deploy/frontend --watch
-#
+
 #    App
 #      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
 #      http://localhost:8080 
+#      Error Ratio 를 100% 로 수정후 Shuffle
 #
 #    Jaeger
 #       kubectl port-forward svc/jaeger-query 16686:16686   
 #       http://localhost:16686
+#       요청을 5번 했는지 확인
+#
+#    Consul UI 
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui
+#      Backend 서비스 활성 상태 확인, Circuit Break 검사 
+#
+# Phase 3 > Backend Service 의 readiness_probe 주석 해제
+#
+#    Consul UI 
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui
+#      서비스 비활성 상태 확인
