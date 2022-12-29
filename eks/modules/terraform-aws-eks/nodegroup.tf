@@ -15,14 +15,13 @@ resource "aws_eks_node_group" "eks_ng_public" {
   disk_size      = 40
   instance_types = ["t2.medium"]
 
-  dynamic "remote_access" {
-    for_each = var.nodegroup_ssh_key == null || length(var.nodegroup_ssh_allowed_security_group_ids) == 0 ? [] : [1]
-
-    content {
-      ec2_ssh_key               = var.nodegroup_ssh_key
-      source_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
-    }
-  }
+  #dynamic "remote_access" {
+  #  for_each = var.nodegroup_ssh_key == null || length(var.nodegroup_ssh_allowed_security_group_ids) == 0 ? [] : [1]
+  #  content {
+  #    ec2_ssh_key               = var.nodegroup_ssh_key
+  #    source_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
+  #  }
+  #}
 
   scaling_config {
     desired_size = 1
@@ -66,14 +65,13 @@ resource "aws_eks_node_group" "eks_ng_private" {
   disk_size      = 40
   instance_types = ["t2.medium"]
 
-  dynamic "remote_access" {
-    for_each = var.nodegroup_ssh_key == null && length(var.nodegroup_ssh_allowed_security_group_ids) == 0 ? [] : [1]
-
-    content {
-      ec2_ssh_key               = var.nodegroup_ssh_key
-      source_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
-    }
-  }
+  #dynamic "remote_access" {
+  #  for_each = var.nodegroup_ssh_key == null && length(var.nodegroup_ssh_allowed_security_group_ids) == 0 ? [] : [1]
+  #  content {
+  #    ec2_ssh_key               = var.nodegroup_ssh_key
+  #    source_security_group_ids = var.nodegroup_ssh_allowed_security_group_ids
+  #  }
+  #}
 
   scaling_config {
     desired_size = 3
