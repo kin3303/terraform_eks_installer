@@ -230,22 +230,6 @@ YAML
   ]
 }
 
-resource "kubectl_manifest" "backend_router" {
-  yaml_body = <<YAML
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceRouter
-metadata:
-  name: backend
-spec:
-  routes:
-    - destination:
-        numRetries: 5 
-        retryOnStatusCodes: [503]
-YAML
-  depends_on = [ 
-    kubectl_manifest.backend_resolver
-  ]
-}
 
 resource "kubectl_manifest" "backend_splitter" {
   yaml_body = <<YAML
@@ -264,8 +248,29 @@ YAML
     kubectl_manifest.backend_resolver
   ]
 }
-*/
 
+# ?canary=true
+resource "kubectl_manifest" "backend_router" {
+  yaml_body = <<YAML
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceRouter
+metadata:
+  name: backend
+spec:
+  routes:
+    - match: 
+        http:
+          queryParam:
+            - name: canary
+              exact: "true"
+      destination:
+        serviceSubset: v2 
+YAML
+  depends_on = [ 
+    kubectl_manifest.backend_resolver
+  ]
+}
+*/
 
 resource "kubernetes_deployment_v1" "frontend" {
   metadata {
@@ -548,6 +553,8 @@ resource "kubernetes_service_v1" "backend" {
 #   Service 재시작
 #      kubectl get proxydefaults global -n consul >> SYNCED 확인
 #      kubectl get servicerouter backend  >> SYNCED 확인
+#      kubectl get servicesplitter backend  >> SYNCED 확인
+#      kubectl get serviceresolver backend >> SYNCED 확인
 #      kubectl rollout restart deploy/consul-ingress-gateway -n consul
 #      kubectl rollout restart deploy/frontend
 #      kubectl rollout restart deploy/backend
@@ -558,8 +565,7 @@ resource "kubernetes_service_v1" "backend" {
 #    App
 #      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
 #      http://localhost:8080 
-#      Case 1 > Error Ratio 를 100% 로 수정후 Shuffle
-#      Case 2 > 동일 조건에서 여러번 더 Shuffle
+#      http://localhost:8080?canary=true
 #
 #    Jaeger
 #       kubectl port-forward svc/jaeger-query 16686:16686   
