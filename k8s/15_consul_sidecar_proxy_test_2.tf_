@@ -62,7 +62,7 @@ resource "kubernetes_deployment_v1" "frontend" {
         }
 
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -99,9 +99,15 @@ resource "kubernetes_service_v1" "frontend" {
     labels = {
       app = "frontend"
     }
+    annotations = {
+      "service.beta.kubernetes.io/aws-load-balancer-type" = "nlb" 
+      "external-dns.alpha.kubernetes.io/hostname" = "front.idtplateer.com"
+    }    
   }
 
   spec {
+    type = "LoadBalancer"
+
     port {
       name        = "http"
       port        = 6060
@@ -144,7 +150,7 @@ resource "kubernetes_deployment_v1" "backend" {
           app = "backend"
         }
         annotations = {
-          "consul.hashicorp.com/connect-inject" = "true"
+          #"consul.hashicorp.com/connect-inject" = "true"
         }
       }
 
@@ -178,7 +184,7 @@ resource "kubernetes_service_v1" "backend" {
     }
   }
 
-  spec {
+  spec { 
     port {
       protocol    = "TCP"
       port        = 80
@@ -194,18 +200,34 @@ resource "kubernetes_service_v1" "backend" {
   ]
 }
 
-# Phase 0 > Consul 설치
-# Phase 1 > deployment annotation 주석을 모두 비활성화 후 terraform apply
-# Phase 2 > deployment annotation 주석을 활성화 후 terraform apply
+# Phase 0 > Consul 설치, App 배포 
 #
-# UI 활성화 확인
-#    kubectl port-forward service/consul-server --namespace consul 8501:8501
-#    https://localhost:8501/ui/dc1/services
+#   terraform apply --auto-approve
 #
-# 배포확인  
-#    kubectl get deployment,service --selector app=frontend
-#    kubectl get deployment,service --selector app=backend
+#   http://front.idtplateer.com:6060/ >> 접근 가능
 #
-# 접근확인
-#    kubectl exec consul-server-0 -n consul -- curl -sS http://frontend.default:6060 >> ERROR 
-#    kubectl exec deploy/frontend -c frontend -- curl -si http://backend/bird >> SUCCESS 
+# Phase 1 > "consul.hashicorp.com/connect-inject" = "true" 주석 해제
+#
+#   terraform apply --auto-approve
+#
+#   http://front.idtplateer.com:6060/ >> 접근 불가
+#
+#   EKS 에서 Envoy 삽입 확인
+#
+#   Consul UI 에서 Service 등록 확인
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui/dc1/services
+#
+#   Consul UI 
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui/dc1/services
+#
+#   App 배포확인  
+#      kubectl get deployment,service --selector app=frontend
+#      kubectl get deployment,service --selector app=backend
+#
+#   App 접근확인
+#      kubectl exec consul-server-0 -n consul -- curl -sS http://frontend.default:6060 >> ERROR 
+#      kubectl exec deploy/frontend -c frontend -- curl -si http://backend/bird >> SUCCESS 
+# 
+#   terraform destroy --auto-approve

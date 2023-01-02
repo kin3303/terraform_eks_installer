@@ -399,26 +399,20 @@ resource "kubernetes_service_v1" "backend" {
 #    배포확인 
 #      kubectl port-forward service/consul-ingress-gateway -n consul 8080:8080 --address 0.0.0.0  
 #      http://localhost:8080 >> SUCCESS
-#      http://localhost:8080/admin >> RBAC: access denied
-#
-# Phase 2 > Promethues, Grafana, Consul UI 확인
 #
 #    Promethues 확인
 #      kubectl port-forward deploy/prometheus-server 9090:9090
 #      http://localhost:9090 
 #      envoy_http_downstream_rq_completed 확인
-#
-#    Consul UI 
-#      kubectl port-forward service/consul-server --namespace consul 8501:8501
-#      https://localhost:8501/ui/dc1/intentions
 # 
 #    Grafana
 #       kubectl port-forward svc/grafana 3000:3000   
 #       http://localhost:3000
-#
-#       Username : admin Password: password
+#       admin/password
 #
 #       Data sources : Prometheus / http://prometheus-server.default.svc.cluster.local
+#
+#       + -> Dashboard : 대시보드 생성
 #
 #       Dashboard Settings-> Variables
 #           Name : Service
@@ -428,9 +422,8 @@ resource "kubernetes_service_v1" "backend" {
 #         sum(
 #           rate(
 #             envoy_http_downstream_rq_completed{
-#               consul_source_service="$Service",
-#               envoy_http_conn_manager_prefix="public_listener"
-#             }[$__rate_interval]]
+#               consul_source_service="$Service"
+#             }[$__rate_interval]
 #           )
 #         ) 
 #         
@@ -438,18 +431,16 @@ resource "kubernetes_service_v1" "backend" {
 #         sum(
 #           rate(
 #             envoy_http_downstream_rq_xx{
-#               consul_source_service="$Service",
-#               envoy_http_conn_manager_prefix=~"public_listener",
+#               consul_source_service="$Service"
 #               envoy_response_code_class="5"
-#             }[$__rate_interval]]
+#             }[$__rate_interval]
 #           )
 #         ) /
 #         sum(
 #           rate(
 #             envoy_http_downstream_rq_completed{
-#               consul_source_service="$Service",
-#               envoy_http_conn_manager_prefix=~"public_listener"
-#             }[$__rate_interval]]
+#               consul_source_service="$Service"
+#             }[$__rate_interval]
 #           )
 #         )
 #         
@@ -459,9 +450,8 @@ resource "kubernetes_service_v1" "backend" {
 #           sum(
 #             rate(
 #               envoy_http_downstream_rq_time_bucket{
-#                 consul_source_service="$Service",
-#                 envoy_http_conn_manager_prefix=~"public_listener"
-#               }[$__rate_interval]]
+#                 consul_source_service="$Service"
+#               }[$__rate_interval]
 #             )
 #           ) by (le)
 #         )  
@@ -471,9 +461,8 @@ resource "kubernetes_service_v1" "backend" {
 #           sum(
 #             rate(
 #               envoy_http_downstream_rq_time_bucket{
-#                 consul_source_service="$Service",
-#                 envoy_http_conn_manager_prefix=~"public_listener"
-#               }[$__rate_interval]]
+#                 consul_source_service="$Service"
+#               }[$__rate_interval]
 #             )
 #           ) by (le)
 #         )  
