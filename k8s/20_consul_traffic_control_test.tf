@@ -239,9 +239,9 @@ metadata:
   name: backend
 spec:
   splits:
-    - weight: 25 
+    - weight: 100 
       serviceSubset: v1
-    - weight: 75
+    - weight: 0
       serviceSubset: v2
 YAML
   depends_on = [ 
@@ -544,7 +544,11 @@ resource "kubernetes_service_v1" "backend" {
 
 # Phase 0 > Consul 설치, App 배포
 #
-#   terraform apply --auto-approve 
+#    terraform apply --auto-approve 
+#
+#    Consul UI 
+#      kubectl port-forward service/consul-server --namespace consul 8501:8501
+#      https://localhost:8501/ui 
 #
 # Phase 1 > 모든 주석 해제 
 #

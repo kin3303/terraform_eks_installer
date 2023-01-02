@@ -210,15 +210,11 @@ resource "kubernetes_service_v1" "backend" {
 #
 #   terraform apply --auto-approve
 #
-#   http://front.idtplateer.com:6060/ >> 접근 불가
+#   http://front.idtplateer.com:6060/ >> 접근 불가 >> SideCar Proxy 에서 인증되지 않은 Traffic 을 막음
 #
 #   EKS 에서 Envoy 삽입 확인
 #
 #   Consul UI 에서 Service 등록 확인
-#      kubectl port-forward service/consul-server --namespace consul 8501:8501
-#      https://localhost:8501/ui/dc1/services
-#
-#   Consul UI 
 #      kubectl port-forward service/consul-server --namespace consul 8501:8501
 #      https://localhost:8501/ui/dc1/services
 #
