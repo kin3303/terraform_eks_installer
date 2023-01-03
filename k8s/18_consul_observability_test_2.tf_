@@ -431,7 +431,7 @@ resource "kubernetes_service_v1" "backend" {
 #         sum(
 #           rate(
 #             envoy_http_downstream_rq_xx{
-#               consul_source_service="$Service"
+#               consul_source_service="$Service",
 #               envoy_response_code_class="5"
 #             }[$__rate_interval]
 #           )
